@@ -1,0 +1,1 @@
+C:\Users\cvenditti\AppData\Local\Programs\Python\Python37\python img2fmem.py sprites.png 6 mif
