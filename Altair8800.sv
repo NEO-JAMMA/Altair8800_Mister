@@ -231,11 +231,32 @@ sram_image
 	.q(background_color)
 );
 
+reg [10:0] current_sprite_x = 100;
+reg [9:0] current_sprite_y = 100;
+reg [3:0] sprite_index = 0;
+
+always @(negedge CLK_VIDEO) begin
+	reg old_state;
+	old_state <= ps2_key[10];
+	
+	if(old_state != ps2_key[10] && ~ps2_key[9]) begin
+		case(ps2_key[7:0])
+			8'h1d : current_sprite_y = current_sprite_y - 1; // W
+			8'h1c : current_sprite_x = current_sprite_x - 1; // A
+			8'h1b : current_sprite_y = current_sprite_y + 1; // s
+			8'h23 : current_sprite_x = current_sprite_x + 1; // D
+			8'h29 : sprite_index = sprite_index + 1; // SPACE
+		endcase
+	end
+end
 
 pixel_selector pixel_selector	
 (
 		.current_x(x),
 		.current_y(y),
+		.current_sprite_x(current_sprite_x),
+		.current_sprite_y(current_sprite_y),
+		.sprite_index(sprite_index),
 		.background_color(background_color),
 		.clk(CLK_VIDEO),
 		.color(color)

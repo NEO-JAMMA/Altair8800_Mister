@@ -3,6 +3,9 @@
 module	pixel_selector	(
 		input  [10:0] current_x,
 		input  [10:0] current_y,
+		input [10:0] current_sprite_x,
+		input [9:0] current_sprite_y,
+		input [3:0] sprite_index,
 		input  [11:0] background_color,
 		input clk,
 		output reg [11:0] color
@@ -13,9 +16,7 @@ localparam BACKGROUND_WIDTH = 1280;
 localparam BACKGROUND_HEIGHT = 500;
 
 // Sprites VRAM frame buffers
-reg [10:0] current_sprite_x = 624;
-reg [9:0] current_sprite_y = 344;
-reg [7:0] sprite_index = 6;
+
 
 wire [11:0] sprite_color;
 
@@ -62,22 +63,23 @@ sram_image
 	.q(sprite_color)
 );
 
-always @(*)
-begin
-	if (current_y > current_sprite_y  && 
-		current_y < (current_sprite_y + SPRITE_HEIGHT) && 
-		current_x > current_sprite_x  && 
-		current_x < (current_sprite_x + SPRITES_WIDTH))
-	begin
-		sprites_adress = ((current_x - current_sprite_x) + SPRITES_WIDTH * (current_y - current_sprite_y)) + SPRITES_IMAGE_DEPTH * sprite_index;
-		color = sprite_color;
+always @(posedge clk) begin
+	if (current_y >= current_sprite_y  && 
+	current_y < (current_sprite_y + SPRITE_HEIGHT) && 
+	current_x >= current_sprite_x  && 
+	current_x < (current_sprite_x + SPRITES_WIDTH))begin
+		sprites_adress = ((current_x - current_sprite_x) + SPRITES_WIDTH * (current_y - current_sprite_y)) + ((SPRITE_WIDTH * SPRITE_HEIGHT) * sprite_index);
+		if	(sprite_color == 12'b001100110011) begin //Transparent
+			color = background_color;
+		end
+		else begin
+			color = sprite_color;
+		end
 	end
-	else if (current_y >= BACKGROUND_HEIGHT)
-	begin
+	else if (current_y >= BACKGROUND_HEIGHT) begin
 		color = 12'b000000000000;
 	end
-	else
-	begin
+	else begin
 		color = background_color;
 	end
 end
