@@ -26,10 +26,11 @@
 //============================================================================
 
 //TO DO
-// 1024*768
-// altair 1/2
-// fix edge
-//increase color to 8 bits
+// fix edge background right / Pixel left
+// Use Param for LEDS_TOTAL_NUMBER and SWITCHES_TOTAL_NUMBER
+// Move background code to front_panel.sv
+
+
 
 module emu
 (
@@ -161,9 +162,7 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	
 	.buttons(buttons),
 	.status(status),
-	.forced_scandoubler(forced_scandoubler),
-
-
+	.forced_scandoubler(forced_scandoubler)
 );
 
 /////////////////  RESET  /////////////////////////
@@ -175,19 +174,8 @@ wire reset = RESET | status[0] | buttons[1];
 
 wire [10:0] x;  // current pixel x position: 11-bit value: 0-2048
 wire [9:0] y;  // current pixel y position: 10-bit value: 0-1024
-reg [11:0] color;
-reg [11:0] background_color;
-
-//wire sq_a = ((x > 120) & (y >  40) & (x < 280) & (y < 200));
-//wire sq_b = ((x > 200) & (y > 120) & (x < 360) & (y < 280));
-//wire sq_c = ((x > 280) & (y > 200) & (x < 440) & (y < 360));
-//wire sq_d = ((x > 360) & (y > 280) & (x < 520) & (y < 440));
-
-//		.r({8{sq_b}}),
-//		.g({8{sq_a | sq_d}}),
-//		.b({8{sq_c}}),
-///////////////////////////////////////////////////
-
+reg [11:0] pixel_color;
+reg [11:0] background_pixel_color;
 
 // Background VRAM frame buffers
 localparam BACKGROUND_WIDTH = 1280;
@@ -228,12 +216,12 @@ sram_image
 (
 	.address(background_dataout), 
 	.clock(CLK_VIDEO), 
-	.q(background_color)
+	.q(background_pixel_color)
 );
 
-reg [10:0] cursor_x = 100;
-reg [9:0] sprite_y = 100;
-reg [3:0] cursor_y = 0;
+//Keyboard
+reg [3:0] cursor_index_x;
+reg [4:0] cursor_index_y;
 
 always @(negedge CLK_VIDEO) begin
 	reg old_state;
@@ -241,26 +229,43 @@ always @(negedge CLK_VIDEO) begin
 	
 	if(old_state != ps2_key[10] && ~ps2_key[9]) begin
 		case(ps2_key[7:0])
-			8'h1d : cursor_y = cursor_y - 1; // W
-			8'h1c : cursor_x = cursor_x - 1; // A
-			8'h1b : cursor_y = cursor_y + 1; // s
-			8'h23 : cursor_x = cursor_x + 1; // D
-			8'h29 : cursor_clicked = 1; // SPACE
+			8'h1d : cursor_index_y = 0; // s
+			8'h1c : cursor_index_x = cursor_index_x - 1; // A
+			8'h1b : cursor_index_y = 16; // W
+			8'h23 : cursor_index_x = cursor_index_x + 1; // D
+			8'h29 : cursor_action = 0; // SPACE
+		endcase
+	end
+	else if(old_state != ps2_key[10] && ps2_key[9]) begin
+			case(ps2_key[7:0])
+			8'h29 : cursor_action = 1; // SPACE
 		endcase
 	end
 end
 
-pixel_selector pixel_selector	
-(
-		.current_x(x),
-		.current_y(y),
-		.cursor_x(cursor_x),
-		.cursor_y(cursor_y),
-		.cursor_clicked(cursor_clicked),
-		.background_color(background_color),
-		.clk(CLK_VIDEO),
-		.color(color)
 
+reg leds_status[0:35];
+reg [1:0]switches_status[0:24];
+
+front_panel front_panel	
+(
+	.current_x(x),
+	.current_y(y),
+	.cursor_index_x(cursor_index_x),
+	.cursor_index_y(cursor_index_y),
+	.cursor_action(cursor_action),
+	.background_pixel_color(background_pixel_color),
+	.clk(CLK_VIDEO),
+	.leds_status(leds_status),
+	.switches_status(switches_status),
+	.pixel_color(pixel_color)
+);
+
+front_panel_mapping	front_panel_mapping	
+(
+	.clk(CLK_VIDEO),
+	.leds_status(leds_status),
+	.switches_status(switches_status)
 );
 
 assign CE_PIXEL = 1;
@@ -271,21 +276,20 @@ wire HS,VS;
 
 vga_driver vga_driver	
 (
-		.clk(CLK_VIDEO),
-		.reset(reset),
-		.r({8{color[11:8]}}),
-		.g({8{color[7:4]}}),
-		.b({8{color[3:0]}}),
-		.current_x(x),
-		.current_y(y),
-		.vga_r(R),
-		.vga_g(G),
-		.vga_b(B),
-		.vga_hs(HS),
-		.vga_vs(VS),
-		.vga_h_blank(HBlank),
-		.vga_v_blank(VBlank)
-
+	.clk(CLK_VIDEO),
+	.reset(reset),
+	.r({8{pixel_color[11:8]}}),
+	.g({8{pixel_color[7:4]}}),
+	.b({8{pixel_color[3:0]}}),
+	.current_x(x),
+	.current_y(y),
+	.vga_r(R),
+	.vga_g(G),
+	.vga_b(B),
+	.vga_hs(HS),
+	.vga_vs(VS),
+	.vga_h_blank(HBlank),
+	.vga_v_blank(VBlank)
 );
 
 video_cleaner video_cleaner
