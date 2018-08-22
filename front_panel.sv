@@ -3,20 +3,60 @@
 module front_panel (
 		input  [10:0] current_x,
 		input  [10:0] current_y,
-		input  [11:0] background_pixel_color,
 		input [3:0] cursor_index_x,
 		input [4:0] cursor_index_y,
 		input cursor_action,
 		input clk,
+		input clk_sram,
 		input leds_status[0:35],
 		output [1:0]switches_status[0:24],
 		output reg [11:0] pixel_color
 		
 );
 
-// Sprites VRAM frame buffers
+
+// Background VRAM frame buffers
 localparam BACKGROUND_WIDTH = 1280;
 localparam BACKGROUND_HEIGHT = 500;
+localparam BACKGROUND_IMAGE_DEPTH = BACKGROUND_WIDTH * BACKGROUND_HEIGHT; 
+localparam BACKGROUND_IMAGE_A_WIDTH = 20;  // 2^20 > 1280 x 500
+localparam BACKGROUND_IMAGE_D_WIDTH = 6;   // colour bits per pixel
+localparam BACKGROUND_IMAGE_MEMFILE ="./graphics/background.mif";
+
+localparam BACKGROUND_PALETTE_DEPTH = 64; 
+localparam BACKGROUND_PALETTE_A_WIDTH = 6;   // colour bits per pixel
+localparam BACKGROUND_PALETTE_D_WIDTH = 12;
+localparam BACKGROUND_PALETTE_MEMFILE ="./graphics/background_palette.mif";
+
+reg [BACKGROUND_IMAGE_D_WIDTH-1:0] background_dataout;
+reg [BACKGROUND_PALETTE_D_WIDTH-1:0] background_pixel_color;
+
+sram_image 
+#(
+	.ADDR_WIDTH(BACKGROUND_IMAGE_A_WIDTH), 
+	.DATA_WIDTH(BACKGROUND_IMAGE_D_WIDTH), 
+	.DEPTH(BACKGROUND_IMAGE_DEPTH), 
+	.MEMFILE(BACKGROUND_IMAGE_MEMFILE)
+) background
+(
+	.address((current_y * BACKGROUND_WIDTH + current_x) - BACKGROUND_WIDTH -1), // -1 for sram_image access take 1 clock
+	.clock(clk_sram), 
+	.q(background_dataout)
+);
+
+sram_image 
+#(
+	.ADDR_WIDTH(BACKGROUND_PALETTE_A_WIDTH), 
+	.DATA_WIDTH(BACKGROUND_PALETTE_D_WIDTH), 
+	.DEPTH(BACKGROUND_PALETTE_DEPTH), 
+	.MEMFILE(BACKGROUND_PALETTE_MEMFILE)
+) background_palette
+(
+	.address(background_dataout), 
+	.clock(clk_sram), 
+	.q(background_pixel_color)
+);
+
 
 localparam SPRITE_WIDTH = 32;
 localparam SPRITE_HEIGHT = 32;
@@ -34,7 +74,7 @@ localparam SPRITES_PALETTE_MEMFILE ="./graphics/sprites_palette.mif";
 
 wire [SPRITES_IMAGE_D_WIDTH-1:0] sprites_dataout;
 reg [SPRITES_IMAGE_A_WIDTH-1:0] sprites_address;
-wire [11:0] sprite_pixel_color;
+wire [SPRITES_PALETTE_D_WIDTH-1:0] sprite_pixel_color;
 
 sram_image 
 #(
@@ -45,7 +85,7 @@ sram_image
 ) sprites
 (
 	.address(sprites_address), 
-	.clock(clk), 
+	.clock(clk_sram), 
 	.q(sprites_dataout)
 );
 
@@ -58,7 +98,7 @@ sram_image
 ) sprites_palette
 (
 	.address(sprites_dataout), 
-	.clock(clk), 
+	.clock(clk_sram), 
 	.q(sprite_pixel_color)
 );
 
@@ -88,20 +128,18 @@ always @(posedge clk) begin
 	cursor_index = cursor_index_x + cursor_index_y;
 
 	//Leds
-	if	(background_pixel_color == 12'b111100000000 && led_count < LEDS_TOTAL_NUMBER) begin // Led indicator color f00;
+	if	(background_pixel_color == 12'b111100000000 && led_count < LEDS_TOTAL_NUMBER) begin // Led indicator color f00 is detected trigger fill of the array of leds
 		leds_x[led_count] = current_x;
 		leds_y[led_count] = current_y;
 		led_count = led_count + 1;
 	end
 	else begin
-		for (index_led = 0; index_led < LEDS_TOTAL_NUMBER; index_led = index_led + 1) begin
+		for (index_led = 0; index_led < LEDS_TOTAL_NUMBER; index_led = index_led + 1) begin // The array is complete so paint the sprites pixels
 			current_sprite_y = leds_y[index_led] - 6;  // Adjust sprites to background.
 			current_sprite_x = leds_x[index_led] - 10; // The pixel indicator color is at the top of a 22*22 square.
 			
-			if (current_y >= current_sprite_y  && 
-			current_y < (current_sprite_y + (SPRITE_HEIGHT)) && 
-			current_x >= current_sprite_x  && 
-			current_x < (current_sprite_x + (SPRITES_WIDTH))) begin
+			// Test if sprite pixel is at current position
+			if (current_y >= current_sprite_y  && current_y < (current_sprite_y + (SPRITE_HEIGHT)) && current_x >= current_sprite_x  && current_x < (current_sprite_x + (SPRITES_WIDTH))) begin
 				if (leds_status[index_led] == 1) begin
 					sprite_index = 3;
 				end
@@ -117,22 +155,18 @@ always @(posedge clk) begin
 	end
 	
 	//Switches
-	if	(background_pixel_color == 12'b000011110000 && switch_count < SWITCHES_TOTAL_NUMBER) begin // Switch indicator color 0f0 or f0;
+	if	(background_pixel_color == 12'b000011110000 && switch_count < SWITCHES_TOTAL_NUMBER) begin // Switch indicator color 0f0 or f0 is detected trigger fill of the array of switches
 		switches_x[switch_count] = current_x;
 		switches_y[switch_count] = current_y;
 		switch_count = switch_count + 1;
 	end
 	else begin
-		for (index_sw = 0; index_sw < SWITCHES_TOTAL_NUMBER; index_sw = index_sw + 1) begin
+		for (index_sw = 0; index_sw < SWITCHES_TOTAL_NUMBER; index_sw = index_sw + 1) begin // The array is complete so paint the sprites pixels
 			current_sprite_y = switches_y[index_sw] - 6;
 			current_sprite_x = switches_x[index_sw] - 10;
 			
-			
-			if (current_y >= current_sprite_y  && 
-			current_y < (current_sprite_y + (SPRITE_HEIGHT)) && 
-			current_x >= current_sprite_x  && 
-			current_x < (current_sprite_x + (SPRITES_WIDTH))) begin
-				
+			// Test if sprite pixel is at current position
+			if (current_y >= current_sprite_y  && current_y < (current_sprite_y + (SPRITE_HEIGHT)) && current_x >= current_sprite_x  && current_x < (current_sprite_x + (SPRITES_WIDTH))) begin
 				if(index_sw < 17) begin // Toggle switches - Addresses and On/Off
 					sprite_index = 1;
 				end

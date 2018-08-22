@@ -43,9 +43,9 @@ input clk, reset;
 ////////////////////////////////////////////////////////////
 
 //	Horizontal	Timing
-parameter	H_FRONT	=	76;
+parameter	H_FRONT	=	72; //76
 parameter	H_SYNC	=	80;
-parameter	H_BACK	=	212;
+parameter	H_BACK	=	216; //212
 parameter	H_ACT	=	1280;
 parameter	H_BLANK	=	H_FRONT+H_SYNC+H_BACK;
 parameter	H_TOTAL	=	H_FRONT+H_SYNC+H_BACK+H_ACT;

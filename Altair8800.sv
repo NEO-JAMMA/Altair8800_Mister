@@ -132,12 +132,14 @@ localparam CONF_STR = {
 ////////////////////   CLOCKS   ///////////////////
 
 wire locked;
+wire clk_sram;
 
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(CLK_VIDEO),
+	.outclk_1(clk_sram),
 	.locked(locked)
 );
 
@@ -172,52 +174,10 @@ wire reset = RESET | status[0] | buttons[1];
 ///////////////////////////////////////////////////
 
 
-wire [10:0] x;  // current pixel x position: 11-bit value: 0-2048
-wire [9:0] y;  // current pixel y position: 10-bit value: 0-1024
+wire [10:0] current_x;  // current pixel x position: 11-bit value: 0-2048
+wire [9:0] current_y;  // current pixel y position: 10-bit value: 0-1024
 reg [11:0] pixel_color;
-reg [11:0] background_pixel_color;
 
-// Background VRAM frame buffers
-localparam BACKGROUND_WIDTH = 1280;
-localparam BACKGROUND_HEIGHT = 500;
-localparam BACKGROUND_IMAGE_DEPTH = BACKGROUND_WIDTH * BACKGROUND_HEIGHT; 
-localparam BACKGROUND_IMAGE_A_WIDTH = 20;  // 2^20 > 1280 x 500
-localparam BACKGROUND_IMAGE_D_WIDTH = 6;   // colour bits per pixel
-localparam BACKGROUND_IMAGE_MEMFILE ="./graphics/background.mif";
-
-localparam BACKGROUND_PALETTE_DEPTH = 64; 
-localparam BACKGROUND_PALETTE_A_WIDTH = 6;   // colour bits per pixel
-localparam BACKGROUND_PALETTE_D_WIDTH = 12;
-localparam BACKGROUND_PALETTE_MEMFILE ="./graphics/background_palette.mif";
-
-reg [BACKGROUND_IMAGE_D_WIDTH-1:0] background_dataout;
-
-
-sram_image 
-#(
-	.ADDR_WIDTH(BACKGROUND_IMAGE_A_WIDTH), 
-	.DATA_WIDTH(BACKGROUND_IMAGE_D_WIDTH), 
-	.DEPTH(BACKGROUND_IMAGE_DEPTH), 
-	.MEMFILE(BACKGROUND_IMAGE_MEMFILE)
-) background
-(
-	.address(y * BACKGROUND_WIDTH + x), 
-	.clock(CLK_VIDEO), 
-	.q(background_dataout)
-);
-
-sram_image 
-#(
-	.ADDR_WIDTH(BACKGROUND_PALETTE_A_WIDTH), 
-	.DATA_WIDTH(BACKGROUND_PALETTE_D_WIDTH), 
-	.DEPTH(BACKGROUND_PALETTE_DEPTH), 
-	.MEMFILE(BACKGROUND_PALETTE_MEMFILE)
-) background_palette
-(
-	.address(background_dataout), 
-	.clock(CLK_VIDEO), 
-	.q(background_pixel_color)
-);
 
 //Keyboard
 reg [3:0] cursor_index_x;
@@ -247,25 +207,25 @@ end
 reg leds_status[0:35];
 reg [1:0]switches_status[0:24];
 
-front_panel front_panel	
-(
-	.current_x(x),
-	.current_y(y),
-	.cursor_index_x(cursor_index_x),
-	.cursor_index_y(cursor_index_y),
-	.cursor_action(cursor_action),
-	.background_pixel_color(background_pixel_color),
-	.clk(CLK_VIDEO),
-	.leds_status(leds_status),
-	.switches_status(switches_status),
-	.pixel_color(pixel_color)
-);
-
 front_panel_mapping	front_panel_mapping	
 (
 	.clk(CLK_VIDEO),
 	.leds_status(leds_status),
 	.switches_status(switches_status)
+);
+
+front_panel front_panel	
+(
+	.current_x(current_x),
+	.current_y(current_y),
+	.cursor_index_x(cursor_index_x),
+	.cursor_index_y(cursor_index_y),
+	.cursor_action(cursor_action),
+	.clk(CLK_VIDEO),
+	.clk_sram(clk_sram),
+	.leds_status(leds_status),
+	.switches_status(switches_status),
+	.pixel_color(pixel_color)
 );
 
 assign CE_PIXEL = 1;
@@ -281,8 +241,8 @@ vga_driver vga_driver
 	.r({8{pixel_color[11:8]}}),
 	.g({8{pixel_color[7:4]}}),
 	.b({8{pixel_color[3:0]}}),
-	.current_x(x),
-	.current_y(y),
+	.current_x(current_x),
+	.current_y(current_y),
 	.vga_r(R),
 	.vga_g(G),
 	.vga_b(B),
@@ -291,6 +251,7 @@ vga_driver vga_driver
 	.vga_h_blank(HBlank),
 	.vga_v_blank(VBlank)
 );
+
 
 video_cleaner video_cleaner
 (
