@@ -132,14 +132,12 @@ localparam CONF_STR = {
 ////////////////////   CLOCKS   ///////////////////
 
 wire locked;
-wire clk_sram;
 
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(CLK_VIDEO),
-	.outclk_1(clk_sram),
 	.locked(locked)
 );
 
@@ -174,39 +172,6 @@ wire reset = RESET | status[0] | buttons[1];
 ///////////////////////////////////////////////////
 
 
-wire [10:0] current_x;  // current pixel x position: 11-bit value: 0-2048
-wire [9:0] current_y;  // current pixel y position: 10-bit value: 0-1024
-reg [11:0] pixel_color;
-
-
-//Keyboard
-reg [3:0] cursor_index_x;
-reg [4:0] cursor_index_y;
-
-always @(negedge CLK_VIDEO) begin
-	reg old_state;
-	old_state <= ps2_key[10];
-	
-	if(old_state != ps2_key[10] && ~ps2_key[9]) begin
-		case(ps2_key[7:0])
-			8'h1d : cursor_index_y = 0; // s
-			8'h1c : cursor_index_x = cursor_index_x - 1; // A
-			8'h1b : cursor_index_y = 16; // W
-			8'h23 : cursor_index_x = cursor_index_x + 1; // D
-			8'h29 : cursor_action = 0; // SPACE
-		endcase
-	end
-	else if(old_state != ps2_key[10] && ps2_key[9]) begin
-			case(ps2_key[7:0])
-			8'h29 : cursor_action = 1; // SPACE
-		endcase
-	end
-end
-
-
-reg leds_status[0:35];
-reg [1:0]switches_status[0:24];
-
 front_panel_mapping	front_panel_mapping	
 (
 	.clk(CLK_VIDEO),
@@ -214,35 +179,16 @@ front_panel_mapping	front_panel_mapping
 	.switches_status(switches_status)
 );
 
+reg leds_status[0:35];
+reg [1:0]switches_status[0:24];
+
 front_panel front_panel	
 (
-	.current_x(current_x),
-	.current_y(current_y),
-	.cursor_index_x(cursor_index_x),
-	.cursor_index_y(cursor_index_y),
-	.cursor_action(cursor_action),
+	.reset(reset),
 	.clk(CLK_VIDEO),
-	.clk_sram(clk_sram),
 	.leds_status(leds_status),
 	.switches_status(switches_status),
-	.pixel_color(pixel_color)
-);
-
-assign CE_PIXEL = 1;
-wire HBlank, VBlank;
-
-wire [7:0] R,G,B;
-wire HS,VS;
-
-vga_driver vga_driver	
-(
-	.clk(CLK_VIDEO),
-	.reset(reset),
-	.r({8{pixel_color[11:8]}}),
-	.g({8{pixel_color[7:4]}}),
-	.b({8{pixel_color[3:0]}}),
-	.current_x(current_x),
-	.current_y(current_y),
+	.ps2_key(ps2_key),
 	.vga_r(R),
 	.vga_g(G),
 	.vga_b(B),
@@ -252,6 +198,12 @@ vga_driver vga_driver
 	.vga_v_blank(VBlank)
 );
 
+
+assign CE_PIXEL = 1;
+wire HBlank, VBlank;
+
+wire [7:0] R,G,B;
+wire HS,VS;
 
 video_cleaner video_cleaner
 (

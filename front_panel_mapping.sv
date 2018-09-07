@@ -20,7 +20,7 @@ integer index_sw;
 always @(posedge clk) begin
 	for (index_sw = 0; index_sw < SWITCHES_TOTAL_NUMBER; index_sw = index_sw + 1) begin
 		
-		if(switches_status[index_sw] == 1) begin // Toggle switches - Addresses and On/Off
+		if(switches_status[index_sw] != 0) begin // Toggle switches - Addresses and On/Off
 			leds_status[index_sw] = 1;
 		end
 		else begin
