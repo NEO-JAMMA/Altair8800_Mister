@@ -3,8 +3,8 @@
 module front_panel (
   input  reset,
   input  clk,
-  input  leds_status[0:35],
-  output [1:0]switches_status[0:24],
+  input  [0:35] leds_status_in,
+  output [1:0] switches_status[0:24],
   input  [10:0] ps2_key,
   output [7:0] vga_r,
   output [7:0] vga_g,
@@ -54,6 +54,16 @@ module front_panel (
 	reg [11:0]  pixel_color;
 	wire [10:0] current_x;  // current pixel x position: 11-bit value: 0-2048
 	wire [9:0]  current_y;  // current pixel y position: 10-bit value: 0-1024
+	
+	reg [0:35] leds_status;
+	
+	d_flip_flop #(.DATA_WIDTH(36)) DFF_LED 
+		(
+		  .clk(vga_v_blank), 
+		  .reset(reset),
+        .d(leds_status_in), 
+		  .q(leds_status)
+		);
 
 	sram_image 
 	#(
@@ -111,7 +121,9 @@ module front_panel (
 
 	localparam LEDS_COUNT = 36;
 	localparam SWITCHES_COUNT = 25;
-	localparam SWITCHES_ST_COUNT = 17;
+	localparam SWITCHES_ST_COUNT = 18;
+	localparam SWITCHES_ST_AUX1_INDEX = 23;
+	localparam SWITCHES_ST_AUX2_INDEX = 24;
 
 	reg [10:0] leds_x[0:LEDS_COUNT-1]; //36 leds
 	reg [9:0]  leds_y[0:LEDS_COUNT-1];  //36 leds
@@ -138,7 +150,12 @@ module front_panel (
 	wire [5:0] sw_sprite_index[0:24];
 	wire [1:0] cursor_action;
 	  
-	cursor cursor
+	cursor 
+	#(
+	 .SWITCHES_ST_COUNT(SWITCHES_ST_COUNT),
+	 .SWITCHES_ST_AUX1_INDEX(SWITCHES_ST_AUX1_INDEX),
+	 .SWITCHES_ST_AUX2_INDEX(SWITCHES_ST_AUX2_INDEX)
+	) cursor
 	(
 	 .clk(clk),
 	 .ps2_key(ps2_key),
@@ -230,7 +247,7 @@ module front_panel (
 		if	(background_pixel_color == 12'b000011110000 && switch_count < SWITCHES_COUNT) begin // Switch indicator color 0f0 or f0 is detected trigger fill of the array of switches
 			switches_x[switch_count] = current_x;
 			switches_y[switch_count] = current_y;
-			if(switch_count < SWITCHES_ST_COUNT) begin 	// Single Throw switches - Addresses and On/Off
+			if(switch_count < SWITCHES_ST_COUNT || switch_count == SWITCHES_ST_AUX1_INDEX || switch_count == SWITCHES_ST_AUX2_INDEX) begin 	// Single Throw switches - Addresses and On/Off
 				sw_sprite_index[switch_count] = 1;
 			end
 			else begin 												// Double Throw Toggle switches On/Off/On
@@ -246,23 +263,23 @@ module front_panel (
 				// Test if sprite pixel is at current position
 				if (current_y >= current_sprite_y  && current_y < (current_sprite_y + (SPRITE_HEIGHT)) && current_x >= current_sprite_x  && current_x < (current_sprite_x + (SPRITE_WIDTH))) begin
 					
-					if (cursor_action == 1 && index_sw == cursor_index && cursor_index < SWITCHES_ST_COUNT) begin // Single Throw Switch Up
+					if (cursor_action == 1 && index_sw == cursor_index && (cursor_index < SWITCHES_ST_COUNT || cursor_index == SWITCHES_ST_AUX1_INDEX || cursor_index == SWITCHES_ST_AUX2_INDEX)) begin // Single Throw Switch Up
 						sw_sprite_index[index_sw] = 2;
 						switches_status[index_sw] = 1;
 					end
-					else if (cursor_action == 0 && index_sw == cursor_index && cursor_index < SWITCHES_ST_COUNT) begin // Single Throw Switch Down
+					else if (cursor_action == 0 && index_sw == cursor_index && (cursor_index < SWITCHES_ST_COUNT || cursor_index == SWITCHES_ST_AUX1_INDEX || cursor_index == SWITCHES_ST_AUX2_INDEX)) begin // Single Throw Switch Down
 						sw_sprite_index[index_sw] = 1;
 						switches_status[index_sw] = 0;
 					end
-					else if (cursor_action == 1 && index_sw == cursor_index && cursor_index >= SWITCHES_ST_COUNT) begin // Double Throw Toggle switches Up
+					else if (cursor_action == 1 && index_sw == cursor_index && (cursor_index >= SWITCHES_ST_COUNT && cursor_index != SWITCHES_ST_AUX1_INDEX && cursor_index != SWITCHES_ST_AUX2_INDEX)) begin // Double Throw Toggle switches Up
 						sw_sprite_index[index_sw] = 2;
 						switches_status[index_sw] = 2;
 					end
-					else if (cursor_action == 2 && index_sw == cursor_index && cursor_index >= SWITCHES_ST_COUNT) begin // Double Throw Toggle switches Down
+					else if (cursor_action == 2 && index_sw == cursor_index && (cursor_index >= SWITCHES_ST_COUNT && cursor_index != SWITCHES_ST_AUX1_INDEX && cursor_index != SWITCHES_ST_AUX2_INDEX)) begin // Double Throw Toggle switches Down
 						sw_sprite_index[index_sw] = 1;
 						switches_status[index_sw] = 1;
 					end
-					else if (cursor_action == 0 && index_sw == cursor_index && cursor_index >= SWITCHES_ST_COUNT) begin // Double Throw Toggle switches middle
+					else if (cursor_action == 0 && index_sw == cursor_index && (cursor_index >= SWITCHES_ST_COUNT && cursor_index != SWITCHES_ST_AUX1_INDEX && cursor_index != SWITCHES_ST_AUX2_INDEX)) begin // Double Throw Toggle switches middle
 						sw_sprite_index[index_sw] = 0;
 						switches_status[index_sw] = 0;
 					end

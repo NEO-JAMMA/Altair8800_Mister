@@ -1,0 +1,30 @@
+KILLBITS.PRN
+ ;
+ ; Kill the Bit game by Dean McDaniel, May 15, 1975
+ ;
+ ; Object: Kill the rotating bit. If you miss the lit bit, another
+ ; bit turns on leaving two bits to destroy. Quickly
+ ; toggle the switch, don't leave the switch in the up
+ ; position. Before starting, make sure all the switches
+ ; are in the down position.
+ ;
+ 0000 org 0
+ 0000 210000 lxi h,0 ;initialize counter
+ 0003 1680 mvi d,080h ;set up initial display bit
+ 0005 010E00 lxi b,0eh ;higher value = faster
+ 0008 1A beg: ldax d ;display bit pattern on
+ 0009 1A ldax d ;...upper 8 address lights
+ 000A 1A ldax d
+ 000B 1A ldax d
+ 000C 09 dad b ;increment display counter
+ 000D D20800 jnc beg
+ 0010 DBFF in 0ffh ;input data from sense switches
+ 0012 AA xra d ;exclusive or with A
+ 0013 0F rrc ;rotate display right one bit
+ 0014 57 mov d,a ;move data to display reg
+ 0015 C30800 jmp beg ;repeat sequence
+ 0018 end
+Here is the program in octal for easier entry into the Altair:
+000: 041 000 000 026 200 001 016 000
+010: 032 032 032 032 011 322 010 000
+020: 333 377 252 017 127 303 010 000

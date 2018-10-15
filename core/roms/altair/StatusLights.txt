@@ -1,0 +1,18 @@
+STATUS-octal.txt
+ ; demonstrate status light combinations
+ 0000 org 0
+ 0000 3A2000 lda 40Q ;opcode fetch, memory read x 3
+ 0003 322100 sta 41Q ;opcode fetch, mem read x 2, mem write
+ 0006 312000 lxi sp,40Q ;opcode fetch, mem read x 2
+ 0009 F5 push a ;opcode fetch, stack write x 2
+ 000A F1 pop a ;opcode fetch, stack read x 2
+ 000B DB10 in 20Q ;opcode fetch, mem read, I/O input
+ 000D D310 out 20Q ;opcode fetch, mem read, I/O output
+ 000F FB ei ;interrupts enabled
+ 0010 F3 di ;interrupts disabled
+ 0011 76 hlt ;halt
+ 0012 end
+Here is the program in octal for easier entry into the Altair:
+ 0: 072 040 000 062 041 000 061 040
+ 10: 000 365 361 333 020 323 020 373
+ 20: 363 166
