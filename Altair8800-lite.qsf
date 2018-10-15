@@ -443,6 +443,8 @@ set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:sys/build_id.tcl"
 
 set_global_assignment -name ENABLE_SIGNALTAP ON
 set_global_assignment -name USE_SIGNALTAP_FILE cur.stp
+set_global_assignment -name QIP_FILE sys/sys_q13.qip
+set_global_assignment -name QIP_FILE sys/pll_hdmi_q13.qip
 set_global_assignment -name SYSTEMVERILOG_FILE core/rtl/altair.sv
 set_global_assignment -name SYSTEMVERILOG_FILE core/rtl/prg_memory.sv
 set_global_assignment -name VERILOG_FILE pulse_gen.v

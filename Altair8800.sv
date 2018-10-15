@@ -61,6 +61,7 @@ module emu
 	output        VGA_HS,
 	output        VGA_VS,
 	output        VGA_DE,    // = ~(VBlank | HBlank)
+	output        VGA_F1,
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
