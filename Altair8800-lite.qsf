@@ -118,7 +118,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name TOP_LEVEL_ENTITY sys_top
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 17.0.0
-set_global_assignment -name LAST_QUARTUS_VERSION "17.0.0 Lite Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "18.0.0 Standard Edition"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "12:46:37  JULY 05, 2018"
 set_global_assignment -name DEVICE_FILTER_PACKAGE UFBGA
 set_global_assignment -name DEVICE_FILTER_PIN_COUNT 672
@@ -443,6 +443,26 @@ set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:sys/build_id.tcl"
 
 set_global_assignment -name ENABLE_SIGNALTAP ON
 set_global_assignment -name USE_SIGNALTAP_FILE cur.stp
+set_global_assignment -name QIP_FILE sys/sys_q13.qip
+set_global_assignment -name QIP_FILE sys/pll_hdmi_q13.qip
+set_global_assignment -name SYSTEMVERILOG_FILE core/rtl/altair.sv
+set_global_assignment -name SYSTEMVERILOG_FILE core/rtl/prg_memory.sv
+set_global_assignment -name VERILOG_FILE pulse_gen.v
+set_global_assignment -name SOURCE_FILE core/roms/altair/turnmon.bin.mem
+set_global_assignment -name SOURCE_FILE "core/roms/altair/tinybasic-1.0.bin.mem"
+set_global_assignment -name SOURCE_FILE core/roms/altair/basic4k32.bin.mem
+set_global_assignment -name VERILOG_FILE core/rtl/vm80a.v
+set_global_assignment -name VERILOG_FILE core/rtl/simpleuart.v
+set_global_assignment -name VERILOG_FILE core/rtl/sense_switch.v
+set_global_assignment -name VERILOG_FILE core/rtl/rom_memory.v
+set_global_assignment -name VERILOG_FILE core/rtl/ram_memory.v
+set_global_assignment -name VERILOG_FILE core/rtl/mc6850.v
+set_global_assignment -name VERILOG_FILE core/rtl/jmp_boot.v
+set_global_assignment -name VERILOG_FILE core/rtl/examine_next.v
+set_global_assignment -name VERILOG_FILE core/rtl/examine.v
+set_global_assignment -name VERILOG_FILE core/rtl/deposit_next.v
+set_global_assignment -name VERILOG_FILE core/rtl/deposit.v
+set_global_assignment -name VERILOG_FILE core/rtl/debounce_pb.v
 set_global_assignment -name MIF_FILE graphics/sprites_palette.mif
 set_global_assignment -name MIF_FILE graphics/sprites.mif
 set_global_assignment -name MIF_FILE graphics/background_palette.mif
@@ -455,4 +475,5 @@ set_global_assignment -name VERILOG_FILE delay.v
 set_global_assignment -name VERILOG_FILE d_flip_flop.v
 set_global_assignment -name QIP_FILE sram_image.qip
 set_global_assignment -name QIP_FILE sys/sys.qip
+set_global_assignment -name VERILOG_FILE core/rtl/reset.v
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

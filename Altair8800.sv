@@ -61,6 +61,7 @@ module emu
 	output        VGA_HS,
 	output        VGA_VS,
 	output        VGA_DE,    // = ~(VBlank | HBlank)
+	output        VGA_F1,
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
@@ -126,8 +127,70 @@ assign VIDEO_ARY = 9;
 localparam CONF_STR = {
 	"Altair8800;;",
 	"-;",
+	"O78,Program,Prg1,Prg2,Prg3,Prg4;",
+	"-;",
 	"V,v1.1.",`BUILD_DATE
 };
+
+////////////////////   MACHINE   ///////////////////
+
+wire rx; // serial rcv
+wire tx; // serial xmt
+wire sync; // cpu sync
+wire interrupt_ack; // cpu
+wire n_memWR; // cpu
+wire io_stack; // cpu
+wire halt_ack; // cpu
+wire ioWR; // cpu
+wire m1; // cpu
+wire ioRD; // cpu
+wire memRD; // cpu
+wire inte_led; // cpu
+wire [7:0] debugLED;
+wire pauseModeSW; // run/stop
+wire stepPB; // single step
+wire [7:0] dataLEDs;  // display on data LEDs shows input data to processor
+wire [15:0] addrLEDs; // display on addr LEDS
+wire [7:0] dataOraddrIn;    // input switches for data bus and low addr bus
+wire [7:0] addrOrSenseIn;   // input switches for high address bus and Sense SWitches
+wire examinePB;       // show data on data LEDs for addrIn - momentary pos edge
+wire examine_nextPB;   // show data on data LEDs for addrIn = addrIn + 1 - momentary pos edge
+wire depositPB;       // write data selected on dataOraddrIn Switches to address on addrOut LEDS - momentary pos edge
+wire deposit_nextPB;    // write data selected on dataOraddrIn Switches to address+1 on addrOut LEDS - momentary pos edge
+wire resetPB;           // set PC to 0
+
+
+altair machine
+(
+ .clk(CLK_50M & ~on_off),
+ .reset(reset_machine),
+ .rx(rx),
+ .tx(tx),
+ .sync(sync),
+ .interrupt_ack(interrupt_ack),
+ .n_memWR(n_memWR),
+ .io_stack(io_stack),
+ .halt_ack(halt_ack),
+ .ioWR(ioWR),
+ .m1(m1),
+ .ioRD(ioRD),
+ .memRD(memRD),
+ .inte_o(inte_led),
+ .hlda_o(hold_ack_led),
+ .wait_o(wait_led),
+ .debugLED(debugLED),
+ .pauseModeSW(pauseModeSW),
+ .stepPB(stepPB),
+ .dataLEDs(dataLEDs),
+ .addrLEDs(addrLEDs),
+ .dataOraddrIn(dataOraddrIn),
+ .addrOrSenseIn(addrOrSenseIn),
+ .examinePB(examinePB),
+ .examine_nextPB(examine_nextPB),
+ .depositPB(depositPB),
+ .deposit_nextPB(deposit_nextPB),
+ .resetPB(resetPB)
+);
 
 ////////////////////   CLOCKS   ///////////////////
 
@@ -169,24 +232,82 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 
 wire reset = RESET | status[0] | buttons[1];
 
-///////////////////////////////////////////////////
+wire reset_machine;
 
+pulse_gen reset_pulse
+(
+  .clk(CLK_50M),
+  .trigger_in( reset | on_off),
+  .pulse_out(reset_machine)
+);
+
+
+typedef enum {prg1='b00, prg2='b01, prg3='b10, prg4='b11} prg_type_enum;
+wire [1:0] prg_type = status[8:7];
+
+///////////////////////////////////////////////////
+// 0 to 9 Status
+// 10 to 17 Data
+// 18 to 19 Wait HLDA
+// 20 to 35 Address
+reg [0:35] leds_status;
+reg [1:0]  switches_status[0:24];
+reg aux1;
+reg aux2;
+reg on_off;
+reg protect;
+reg unprotect;
+reg clear;
+reg prot_led;
+reg wait_led;
+reg hold_ack_led;
 
 front_panel_mapping	front_panel_mapping	
 (
-	.clk(CLK_VIDEO),
+	.clk(CLK_50M),
 	.leds_status(leds_status),
-	.switches_status(switches_status)
+	.switches_status(switches_status),
+		
+		// altair front panel LEDS from machine
+		.data(dataLEDs),
+	   .addr(addrLEDs),
+	   .INTE(inte_led),
+		.PROT(prot_led),
+		.MEMR(memRD),
+		.INP(ioRD),
+		.M1(m1),
+		.OUT(ioWR),
+		.HLTA(halt_ack),
+		.STACK(io_stack),
+		.WO(~n_memWR),
+		.INT(interrupt_ack),
+		.WAIT(wait_led),
+		.HLDA(hold_ack_led),
+		
+		// altair front panel SWITCHES to machine
+		.sense_addr(addrOrSenseIn),
+		.data_addr(dataOraddrIn),
+		.on_off(on_off),
+		.stop_run(pauseModeSW),
+		.step(stepPB),
+		.examine(examinePB),
+		.examine_next(examine_nextPB),
+		.deposit(depositPB),
+		.deposit_next(deposit_nextPB),
+		.reset(resetPB),
+		.clear(clear),
+		.protect(protect),
+		.unprotect(unprotect),
+		.aux1(aux1),
+		.aux2(aux2)
 );
 
-reg leds_status[0:35];
-reg [1:0]switches_status[0:24];
 
 front_panel front_panel	
 (
 	.reset(reset),
 	.clk(CLK_VIDEO),
-	.leds_status(leds_status),
+	.leds_status_in(leds_status),
 	.switches_status(switches_status),
 	.ps2_key(ps2_key),
 	.vga_r(R),

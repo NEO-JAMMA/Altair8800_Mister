@@ -357,7 +357,7 @@ vip vip
 	.in_v_sync(vs),
 	.in_h_sync(hs),
 	.in_ce(ce_pix),
-	.in_f(0),
+	.in_f(f1),
 
 	//HDMI output
 	.hdmi_clk(iHdmiClk),
@@ -435,7 +435,7 @@ wire vde, hde;
 wire vs_hdmi;
 wire hs_hdmi;
 
-/*
+`ifndef HDMI_LITE
 
 pattern_vg
 #(
@@ -458,7 +458,7 @@ pattern_vg
 	.b_in(0),
 	.vn_out(HDMI_TX_VS),
 	.hn_out(HDMI_TX_HS),
-	.den_out(HDMI_TX_DE),
+	.den_out(hdmi_de),
 	.r_out(hdmi_data[23:16]),
 	.g_out(hdmi_data[15:8]),
 	.b_out(hdmi_data[7:0]),
@@ -467,7 +467,8 @@ pattern_vg
 	.pattern(4),
 	.ramp_step(20'h0333)
 );
-*/
+
+`endif
 
 wire reset;
 sysmem_lite sysmem
@@ -505,8 +506,10 @@ sysmem_lite sysmem
 	.ram2_read(0),
 	.ram2_writedata(0),
 	.ram2_byteenable(0),
-	.ram2_write(0),
+	.ram2_write(0)
 
+`ifdef HDMI_LITE
+	,
 	// HDMI frame buffer
 	.vbuf_clk(clk_ctl),
 	.vbuf_address(vbuf_address),
@@ -518,6 +521,7 @@ sysmem_lite sysmem
 	.vbuf_readdata(vbuf_readdata),
 	.vbuf_readdatavalid(vbuf_readdatavalid),
 	.vbuf_read(vbuf_read)
+	
 );
 
 wire  [27:0] vbuf_address;
@@ -566,6 +570,9 @@ hdmi_lite hdmi_lite
 	.vbuf_readdata(vbuf_readdata),
 	.vbuf_readdatavalid(vbuf_readdatavalid),
 	.vbuf_read(vbuf_read)
+
+`endif
+
 );
 
 `endif
@@ -825,7 +832,7 @@ wire signed [15:0] audio_ls, audio_rs;
 wire        audio_s;
 wire  [1:0] audio_mix;
 wire  [7:0] r_out, g_out, b_out;
-wire        vs, hs, de;
+wire        vs, hs, de, f1;
 wire        clk_sys, clk_vid, ce_pix;
 
 wire        ram_clk;
@@ -862,6 +869,7 @@ emu emu
 	.VGA_HS(hs_emu),
 	.VGA_VS(vs_emu),
 	.VGA_DE(de),
+	.VGA_F1(f1),
 
 	.LED_USER(led_user),
 	.LED_POWER(led_power),

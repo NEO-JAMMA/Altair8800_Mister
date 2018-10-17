@@ -1,0 +1,48 @@
+ ; SIO (not 2SIO) echo test
+ 0000 org 0
+ 0000 DB00 loop in 00h ;wait for character
+ 0002 0F rrc
+ 0003 DA0000 jc loop ;nothing yet (negative logic)
+ 0006 DB01 in 01h ;read the character
+ 0008 D301 out 01h ;echo it
+ 000A C30000 jmp loop
+
+ Here is the program in octal for easier entry into the Altair:
+000: 333 000 017 332 000 000 333 001
+010: 323 001 303 000 000
+
+
+
+; SIO (not 2SIO) echo test with receive interrupts
+ 0000 org 0
+ 0000 310001 lxi sp,0100h ;init stack pointer
+ 0003 3E01 mvi a,01h ;receive ints on
+ 0005 D300 out 00h
+ 0007 FB ei ;enable 8080 interrutps
+ ; The loop below represents "normal" processing a program may
+ ; be doing. We also verify that the accumulator does not
+ ; get changed by the interrupt routine.
+ 0008 00 loop nop
+ 0009 00 nop
+ 000A 00 nop
+ 000B C30800 jmp loop
+ ; Interrupt service routine for RST7 is at 038h. This routine
+ ; saves the accumulator and PSW, then echoes the character.
+ ; If this interrupt is shared, then the commented statements
+ ; to check for a character would be included and used
+ ; to branch to a a 2nd device to check.
+ 0038 org 038h ;RST7 entry address
+ 0038 F5 push a ;save A and status flags
+ ; in 00h ;verify a new character present
+ ; rrc ;lsb has new data flag
+ ; jc nextDev no character, try next device
+ 0039 DB01 in 01h ;read the character
+ 003B D301 out 01h ;echo it
+ 003D F1 pop a ;restore A and status flags
+ 003E FB ei ;re-enable 8080 interrupts
+ 003F C9 ret
+
+ Here is the program in octal for easier entry into the Altair:
+ 0: 061 000 001 076 001 323 000 373
+ 10: 000 000 000 303 010 000
+ 70: 365 333 001 323 001 361 373 311
