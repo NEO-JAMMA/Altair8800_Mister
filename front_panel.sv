@@ -124,6 +124,8 @@ module front_panel (
 	localparam SWITCHES_ST_COUNT = 18;
 	localparam SWITCHES_ST_AUX1_INDEX = 23;
 	localparam SWITCHES_ST_AUX2_INDEX = 24;
+	localparam SWITCHES_ON_OFF_INDEX = 16;
+	localparam SWITCHES_STOP_RUN_INDEX = 17;
 
 	reg [10:0] leds_x[0:LEDS_COUNT-1]; //36 leds
 	reg [9:0]  leds_y[0:LEDS_COUNT-1];  //36 leds
@@ -158,6 +160,7 @@ module front_panel (
 	) cursor
 	(
 	 .clk(clk),
+	 .reset(reset),
 	 .ps2_key(ps2_key),
 	 .cursor_index(cursor_index),
 	 .cursor_action(cursor_action)
@@ -216,6 +219,11 @@ module front_panel (
 		useSpriteColor = 0;
 		cursorSelected = 0;
 
+		if	(reset) begin // reset switches to startup state
+      switch_count = 0;
+      led_count = 0;
+		end
+
 		//Leds
 		if	(background_pixel_color == 12'b111100000000 && led_count < LEDS_COUNT) begin // Led indicator color f00 is detected trigger fill of the array of leds
 			leds_x[led_count] = current_x;
@@ -248,7 +256,14 @@ module front_panel (
 			switches_x[switch_count] = current_x;
 			switches_y[switch_count] = current_y;
 			if(switch_count < SWITCHES_ST_COUNT || switch_count == SWITCHES_ST_AUX1_INDEX || switch_count == SWITCHES_ST_AUX2_INDEX) begin 	// Single Throw switches - Addresses and On/Off
-				sw_sprite_index[switch_count] = 1;
+				if (switch_count == SWITCHES_ON_OFF_INDEX || switch_count == SWITCHES_STOP_RUN_INDEX) begin
+          sw_sprite_index[switch_count] = 2;
+          switches_status[switch_count] = 1;
+        end
+        else begin
+          sw_sprite_index[switch_count] = 1;
+          switches_status[switch_count] = 0;
+        end
 			end
 			else begin 												// Double Throw Toggle switches On/Off/On
 				sw_sprite_index[switch_count] = 0;

@@ -21,7 +21,7 @@ generate
 		(
 		  .clk(clk), 
 		  .reset(reset),
-        .d(connect_wire[i-1]), 
+      .d(connect_wire[i-1]), 
 		  .q(connect_wire[i])
 		);
    end

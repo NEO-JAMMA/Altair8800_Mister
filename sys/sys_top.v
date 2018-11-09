@@ -90,7 +90,10 @@ module sys_top
 	input   [3:0] SW,
 
 	////////// MB LED ///////////
-	output  [7:0] LED
+	output  [7:0] LED,
+
+	////////// ARDUINO ///////////
+	inout  [15:3] ARDUINO_IO
 );
 
 
@@ -919,7 +922,9 @@ emu emu
 	.SDRAM_nRAS(SDRAM_nRAS),
 	.SDRAM_nCAS(SDRAM_nCAS),
 	.SDRAM_CLK(SDRAM_CLK),
-	.SDRAM_CKE(SDRAM_CKE)
+	.SDRAM_CKE(SDRAM_CKE),
+  .RX(ARDUINO_IO[14]),
+  .TX(ARDUINO_IO[15])
 );
 
 endmodule

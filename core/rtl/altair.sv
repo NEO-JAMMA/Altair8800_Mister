@@ -9,6 +9,8 @@ module altair(
   input stepPB,
   input reset,
   input rx,
+  input hold_in,
+  input ready_in,
   output tx,
   output sync,
   output reg interrupt_ack,
@@ -31,9 +33,13 @@ module altair(
   input examine_nextPB,
   input depositPB,
   input deposit_nextPB,
-  input resetPB
-  
+  input resetPB,
+  input [2:0] prg_sel,
+  input enable_turn_mon
 );
+  
+  `include "common.sv"
+  
   reg intr = 0;	
   reg [7:0] idata;
   wire [15:0] addr;
@@ -50,20 +56,39 @@ module altair(
   ////////////////////   STEP & GO   ////////////////////
   reg		stepkey;
   reg		onestep;
-  reg cpu_flag;
-  reg[10:0] cpu_cnt;
-
+  //reg cpu_flag;
+  //reg[10:0] cpu_cnt;
+  wire cpu_ce2;
+  wire sio_clk;
 
   ///////// SINGLE STEP CONTROL ////////////
+//  clk_divn_odd #(.N(25),.WIDTH(5)) cpu_clk_mod(.clk(clk), .reset(reset), .clk_out(cpu_ce2)); // 2 Mhz out
+//  clk_div cpu_clk_mod(.clk(clk), .rst(reset), .clk_div(cpu_ce2)); // 2 Mhz out
+//  clk_divn_odd #(.N(25),.WIDTH(5)) sio_clk_mod(.clk(clk), .reset(reset), .clk_out(sio_clk)); // 2 Mhz out
+  frequency_divider #(.N(25),.WIDTH(20)) freq_cpu
+  (
+    .clk_in(clk),
+    .clk_out(cpu_ce2),
+    .rst(reset)
+  );  
+  
+  frequency_divider #(.N(25),.WIDTH(20)) freq_sio
+  (
+    .clk_in(clk),
+    .clk_out(sio_clk),
+    .rst(reset)
+  );  
+
+  // for ce_2 this is 41 * 50,000,000 Mhz / 1024 = 2,001,953.125 Mhz
   always @(posedge clk) begin
     stepkey <= stepPB;
     onestep <= stepkey & ~stepPB;
-    cpu_cnt <= cpu_cnt + 11'd41;
-    cpu_flag <= cpu_flag^cpu_ce2;
+    //cpu_cnt <= cpu_cnt + 11'd41;
+    //cpu_flag <= cpu_flag^cpu_ce2;
   end
+  //wire cpu_ce2 = (cpu_flag^cpu_cnt[10]);
 
   wire cpu_ce = onestep | (cpu_ce2 & examine_en) | (cpu_ce2 & reset_en) | (cpu_ce2 & examine_next_en) | (cpu_ce2 & deposit_examine_next_en) | (cpu_ce2 & ~pauseModeSW);
-  wire cpu_ce2 = (cpu_flag^cpu_cnt[10]);
 
   reg[7:0] sysctl;
 
@@ -72,8 +97,8 @@ module altair(
   wire [7:0] deposit_next_out;
   wire [7:0] reset_out;
   wire [7:0] sense_sw_out;
-  wire [7:0] rom_out;
-  wire [7:0] ram_out;
+  wire [7:0] turnmon_out;
+  wire [7:0] stack_out;
   wire [7:0] rammain_out;
   wire [7:0] boot_out;
   wire [7:0] sio_out;
@@ -81,7 +106,7 @@ module altair(
   reg [7:0] sio_in;
   wire [7:0] deposit_in;
   wire [7:0] deposit_next_in;
-  reg [7:0] ram_in;
+  reg [7:0] stack_in;
   reg [7:0] rammain_in;
 
   wire boot;
@@ -101,16 +126,16 @@ module altair(
   wire resetPB_DB;
   wire resetPB_OK;
 
-  reg wr_ram;
+  reg wr_stack;
   reg wr_rammain;
   reg wr_sio;
 
   wire rd;
 
   reg rd_boot;
-  reg rd_ram;
+  reg rd_stack;
   reg rd_rammain;
-  reg rd_rom;
+  reg rd_turnmon;
   reg rd_sio;
   reg rd_examine;
   reg rd_examine_next;
@@ -171,35 +196,35 @@ module altair(
       rd_examine_next = 0;
       rd_reset = 0;
       rd_boot = 0;
-      rd_ram = 0;
+      rd_stack = 0;
       rd_rammain = 0;
-      rd_rom = 0;
+      rd_turnmon = 0;
       rd_sio = 0;
 		rd_sense = 0;
 		
       casex ({boot, ioRD, examine_en, examine_next_en, deposit_examine_next_en, reset_en, addr[15:8]})
         // Deposit Examine Next
-        {6'b000010,8'bxxxxxxxx}: begin idata = deposit_next_out; rd_deposit_examine_next = rd; end       // any address
+        {6'b000010,8'bxxxxxxxx}: begin idata = deposit_next_out; rd_deposit_examine_next = rd; end // any address
         // Examine
-        {6'b001000,8'bxxxxxxxx}: begin idata = examine_out; rd_examine = rd; end       // any address
+        {6'b001000,8'bxxxxxxxx}: begin idata = examine_out; rd_examine = rd; end                   // any address
         // Examine Next
-        {6'b000100,8'bxxxxxxxx}: begin idata = examine_next_out; rd_examine_next = rd; end       // any address
+        {6'b000100,8'bxxxxxxxx}: begin idata = examine_next_out; rd_examine_next = rd; end         // any address
         // Reset
-        {6'b000001,8'bxxxxxxxx}: begin idata = reset_out; rd_reset = rd; end       // any address
+        {6'b000001,8'bxxxxxxxx}: begin idata = reset_out; rd_reset = rd; end                       // any address
         // Turn-key BOOT
-        {6'b100000,8'bxxxxxxxx}: begin idata = boot_out; rd_boot = rd; end       // any address
+        {6'b100000,8'bxxxxxxxx}: begin idata = boot_out; rd_boot = rd; end                         // any address
         
 		  // MEM MAP
-        {6'b000000,8'b000xxxxx}: begin idata = rammain_out; rd_rammain = rd; end // 0x0000-0x1fff basic
+        {6'b000000,8'b000xxxxx}: begin idata = rammain_out; rd_rammain = rd; end                   // 0x0000-0x1fff basic
 		  
-        {6'b000000,8'b11111011}: begin idata = ram_out; rd_ram = rd; end         // 0xfb00-0xfbff stack
-        {6'b000000,8'b11111101}: begin idata = rom_out; rd_rom = rd; end         // 0xfd00-0xfdff turn-key rom
+        {6'b000000,8'b11111011}: begin idata = stack_out; rd_stack = rd; end                       // 0xfb00-0xfbff stack
+        {6'b000000,8'b11111101}: begin idata = turnmon_out; rd_turnmon = rd & enable_turn_mon; end // 0xfd00-0xfdff turn-key rom
       endcase
 
       casex ({ioRD, examine_en, examine_next_en, reset_en, addr[7:0]})
         // I/O MAP - addr[15:8] == addr[7:0] for this section
-        {4'b1000,8'b000x000x}: begin idata = sio_out; rd_sio = rd; end         // 0x00-0x01 0x10-0x11 
-        {4'b1000,8'b11111111}: begin idata = sense_sw_out; rd_sense = rd; end         // sense switch port at 0xff
+        {4'b1000,8'b000x000x}: begin idata = sio_out; rd_sio = rd; end                             // 0x00-0x01 0x10-0x11 
+        {4'b1000,8'b11111111}: begin idata = sense_sw_out; rd_sense = rd; end                      // sense switch port at 0xff
       endcase
 
     end
@@ -207,34 +232,34 @@ module altair(
 ///////// CHIP SELECT - output from cpu or deposit ////////////
   always @(*)
     begin
-      wr_ram = 0;
+      wr_stack = 0;
       wr_sio = 0;
       wr_rammain = 0;
 
       casex ({ioWR, examine_en, examine_next_en, deposit_en, deposit_next_en, reset_en, addr[15:8]})
         
 		  // MEM MAP
-        {6'b000000,8'b000xxxxx}: begin rammain_in = odata; wr_rammain = ~wr_n; end // 0x0000-0x1fff basic
-        {6'b000000,8'b11111011}: begin ram_in = odata; wr_ram = ~wr_n; end     // 0xfb00-0xfbff
+        {6'b000000,8'b000xxxxx}: begin rammain_in = odata; wr_rammain = ~wr_n; end      // 0x0000-0x1fff basic
+        {6'b000000,8'b11111011}: begin stack_in = odata; wr_stack = ~wr_n; end          // 0xfb00-0xfbff
         {6'b000100,8'bxxxxxxxx}: 
 		    begin 
 			   casex({ioWR, deposit_en, addr[15:8]})
-			     {2'b01,8'b000xxxxx}: begin rammain_in = deposit_in; wr_rammain = 1; end // 0x0000-0x1fff
-			     {2'b01,8'b11111011}: begin ram_in = deposit_in; wr_ram = 1; end         // 0xfb00-0xfbff
+			     {2'b01,8'b000xxxxx}: begin rammain_in = deposit_in; wr_rammain = 1; end      // 0x0000-0x1fff
+			     {2'b01,8'b11111011}: begin stack_in = deposit_in; wr_stack = 1; end          // 0xfb00-0xfbff
 			   endcase
 			 end
         {6'b000010,8'bxxxxxxxx}: 
 		    begin 
 			   casex({ioWR, deposit_next_en, addr[15:8]})
 			     {2'b01,8'b000xxxxx}: begin rammain_in = deposit_next_in; wr_rammain = 1; end // 0x0000-0x1fff
-			     {2'b01,8'b11111011}: begin ram_in = deposit_next_in; wr_ram = 1; end         // 0xfb00-0xfbff
+			     {2'b01,8'b11111011}: begin stack_in = deposit_next_in; wr_stack = 1; end     // 0xfb00-0xfbff
 			   endcase
 			 end
         // 0xfd00-0xfdff read-only turn-key rom
       endcase
       casex ({ioWR, examine_en, examine_next_en, addr[7:0]})
         // I/O MAP - addr[15:8] == addr[7:0] for this section
-        {3'b100,8'b000x000x}: begin sio_in = odata; wr_sio = ~wr_n; end // 0x00-0x01 0x10-0x11 
+        {3'b100,8'b000x000x}: begin sio_in = odata; wr_sio = ~wr_n; end                 // 0x00-0x01 0x10-0x11 
       endcase
 	end
 
@@ -262,7 +287,9 @@ module altair(
         intrq <= 0;
 
       if (reset)
-        rcnt <= 8'h00;
+        begin 
+          rcnt <= 8'h00; 
+        end
       else
         if (rcnt != 8'hFF) 
           rcnt <= rcnt + 8'h01;
@@ -289,9 +316,9 @@ module altair(
       memRD <= sysctl[7];
 
       debugLED[0] <= rd_boot;
-      debugLED[1] <= rd_rom;
-      debugLED[2] <= rd_ram;
-      debugLED[3] <= wr_ram;
+      debugLED[1] <= rd_turnmon;
+      debugLED[2] <= rd_stack;
+      debugLED[3] <= wr_stack;
       debugLED[4] <= rd_rammain;
       debugLED[5] <= wr_rammain;
       debugLED[6] <= rd_sio;
@@ -312,8 +339,8 @@ vm80a_core cpu
    .pin_a(addr),
    .pin_dout(odata),
    .pin_din(idata),
-   .pin_hold(1'b0),
-   .pin_ready(1'b1),
+   .pin_hold(hold_in),
+   .pin_ready(ready_in),
    .pin_int(intr),
    .pin_wr_n(wr_n),
    .pin_dbin(rd),
@@ -330,6 +357,8 @@ vm80a_core cpu
     .clk(clk),
     .reset(~rst_n),
     .rd(rd_boot),
+    .lo_addr(8'h00), // if turnmon use FD00
+    .hi_addr(enable_turn_mon ? 8'hfd : 8'h00), // if turnmon use FD00 else 0000
     .data_out(boot_out),
     .valid(boot)
   );
@@ -350,9 +379,8 @@ vm80a_core cpu
     .reset(~rst_n),
     .deposit(depositPB_DN),
     .data_sw(dataOraddrIn),
-//    .data_sw(8'hAA),
     .data_out(deposit_in),
-	 .deposit_latch(deposit_latch)
+	  .deposit_latch(deposit_latch)
   );
   
   
@@ -369,18 +397,13 @@ vm80a_core cpu
   (
     .clk(clk),
     .reset(~rst_n),
-	 .rd(rd_deposit_examine_next),
+	  .rd(rd_deposit_examine_next),
     .deposit(deposit_nextPB_DN),
     .data_sw(dataOraddrIn),
-//    .data_sw(8'h55),
     .deposit_out(deposit_next_in),
-	 .deposit_latch(deposit_next_latch),
+	  .deposit_latch(deposit_next_latch),
     .data_out(deposit_next_out),
-    .lo_addr(dataOraddrIn),
-    .hi_addr(addrOrSenseIn),
-//    .lo_addr(8'hFF),
-//    .hi_addr(8'h1E),
-	 .examine_latch(deposit_next_examine_latch)
+	  .examine_latch(deposit_next_examine_latch)
   );
   
   
@@ -397,14 +420,12 @@ vm80a_core cpu
   (
     .clk(clk),
     .reset(~rst_n),
-	 .rd(rd_examine),
+	  .rd(rd_examine),
     .examine(examinePB_DN),
     .data_out(examine_out),
     .lo_addr(dataOraddrIn),
     .hi_addr(addrOrSenseIn),
-//    .lo_addr(8'h00),
-//    .hi_addr(8'h1F),
-	 .examine_latch(examine_latch)
+	  .examine_latch(examine_latch)
   );
   
 ///////// EXAMINE NEXT ////////////
@@ -420,17 +441,12 @@ vm80a_core cpu
   (
     .clk(clk),
     .reset(~rst_n),
-	 .rd(rd_examine_next),
+	  .rd(rd_examine_next),
     .examine(examine_nextPB_DN),
     .data_out(examine_next_out),
-    .lo_addr(dataOraddrIn),
-    .hi_addr(addrOrSenseIn),
-//    .lo_addr(8'hFF),
-//    .hi_addr(8'hFC),
-	 .examine_latch(examine_next_latch)
+	  .examine_latch(examine_next_latch)
   );
   
-
 ///////// RESET ////////////
   debounce_pb reset_DB (
     .clk(clk), 
@@ -444,30 +460,31 @@ vm80a_core cpu
   (
     .clk(clk),
     .reset(~rst_n),
-	 .rd(rd_reset),
+	  .rd(rd_reset),
     .reset_in(resetPB_DN),
     .data_out(reset_out),
-	 .reset_latch(reset_latch)
+	  .reset_latch(reset_latch)
   );
 
 ///////// SENSE SWITCHES ////////////
   sense_switch sense_sw
   (
     .clk(clk),
-	 .rd(rd_sense),
+	  .rd(rd_sense),
     .data_out(sense_sw_out),
-    .switch_settings(addrOrSenseIn)
-//    .switch_settings(8'hFD)
+    .switch_settings(addrOrSenseIn) // 0xFD for basic
   );
 
  
-  rom_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(8),.FILENAME("../roms/altair/turnmon.bin.mem")) rom(.clk(clk),.addr(addr[7:0]),.rd(rd_rom),.data_out(rom_out));
-  //rom_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(8)) rom(.clk(clk),.addr(addr[7:0]),.rd(rd_rom),.data_out(rom_out));
+  //rom_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(8),.FILENAME("../roms/altair/turnmon.bin.mem")) turnmon(.clk(clk),.addr(addr[7:0]),.rd(rd_turnmon),.data_out(turnmon_out));
+  turnmon_mem #(.DATA_WIDTH(8),.ADDR_WIDTH(8)) turnmon(.clk(clk),.addr(addr[7:0]),.rd(rd_turnmon),.data_out(turnmon_out));
 
-  ram_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(8)) stack(.clk(clk),.addr(addr[7:0]),.data_in(ram_in),.rd(rd_ram),.we(wr_ram),.data_out(ram_out));
+  ram_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(8)) stack(.clk(clk),.addr(addr[7:0]),.data_in(stack_in),.rd(rd_stack),.we(wr_stack),.data_out(stack_out));
 
   //ram_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(13),.FILENAME("../roms/altair/basic4k32.bin.mem")) mainmem(.clk(clk),.addr(addr[12:0]),.data_in(rammain_in),.rd(rd_rammain),.we(wr_rammain),.data_out(rammain_out));
-  ram_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(13)) mainmem(.clk(clk),.addr(addr[12:0]),.data_in(rammain_in),.rd(rd_rammain),.we(wr_rammain),.data_out(rammain_out));
+  
+  //basic4k32_mem #(.DATA_WIDTH(8),.ADDR_WIDTH(13)) mainmem(.clk(clk),.addr(addr[12:0]),.data_in(rammain_in),.rd(rd_rammain),.we(wr_rammain),.data_out(rammain_out));
+  samples_mem #(.DATA_WIDTH(8),.ADDR_WIDTH(13)) mainmem(.prg_sel(prg_sel),.clk(clk),.addr(addr[12:0]),.data_in(rammain_in),.rd(rd_rammain),.we(wr_rammain),.data_out(rammain_out));
   //ram_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(13),.FILENAME("../roms/altair/tinybasic-1.0.bin.mem")) mainmem(.clk(clk),.addr(addr[12:0]),.data_in(rammain_in),.rd(rd_rammain),.we(wr_rammain),.data_out(rammain_out));
 
   //ram_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(13),.FILENAME("../roms/altair/serialporttest.bin.mem")) mainmem(.clk(clk),.addr(addr[12:0]),.data_in(rammain_in),.rd(rd_rammain),.we(wr_rammain),.data_out(rammain_out));
@@ -476,12 +493,13 @@ vm80a_core cpu
   wire [7:0] prg1_out;
   reg wr_prg1;
   reg rd_prg1;
-  prg_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(8),.RAM_DATA_LEN(8),.RAM_DATA('{8'h01, 8'h02, 8'h03, 8'h04, 8'h05, 8'h06, 8'h07, 8'h08})) prg_1(.clk(clk),.addr(addr[7:0]),.data_in(prg1_in),.rd(rd_prg1),.we(wr_prg1),.data_out(prg1_out));
+  prg_memory #(.DATA_WIDTH(8),.ADDR_WIDTH(8),.RAM_DATA_LEN(8),.RAM_DATA('{8'h00, 8'h01, 8'h02, 8'h03, 8'h04, 8'h05, 8'h06, 8'h07})) prg_1(.clk(clk),.addr(addr[7:0]),.data_in(prg1_in),.rd(rd_prg1),.we(wr_prg1),.data_out(prg1_out));
 
 ///////// TERMINAL SERIAL ////////////
-  mc6850 sio
+  mc6850 #(.CLOCK(2000000),.BAUD(19200)) sio
   (
-    .clk(cpu_ce2),
+    .clk(sio_clk),
+    //.clk(cpu_ce2),
     .reset(~rst_n),
     .addr(addr[0]),
     .data_in(sio_in),

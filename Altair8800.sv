@@ -108,8 +108,12 @@ module emu
 	output        SDRAM_nCS,
 	output        SDRAM_nCAS,
 	output        SDRAM_nRAS,
-	output        SDRAM_nWE
+	output        SDRAM_nWE,
+  input         RX,
+  output        TX
 );
+
+`include "common.sv"
 
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
@@ -127,15 +131,18 @@ assign VIDEO_ARY = 9;
 localparam CONF_STR = {
 	"Altair8800;;",
 	"-;",
-	"O78,Program,Prg1,Prg2,Prg3,Prg4;",
+	"O79,Select Program,Empty,zeroToseven,KillBits,SIOEcho,StatusLights,Basic4k32;",
+	"T6,Load Program;",
+	"OA,Enable TurnMon,No,Yes;",
+	"T0,Reset;",
 	"-;",
 	"V,v1.1.",`BUILD_DATE
 };
 
 ////////////////////   MACHINE   ///////////////////
 
-wire rx; // serial rcv
-wire tx; // serial xmt
+//wire rx; // serial rcv
+//wire tx; // serial xmt
 wire sync; // cpu sync
 wire interrupt_ack; // cpu
 wire n_memWR; // cpu
@@ -158,14 +165,15 @@ wire examine_nextPB;   // show data on data LEDs for addrIn = addrIn + 1 - momen
 wire depositPB;       // write data selected on dataOraddrIn Switches to address on addrOut LEDS - momentary pos edge
 wire deposit_nextPB;    // write data selected on dataOraddrIn Switches to address+1 on addrOut LEDS - momentary pos edge
 wire resetPB;           // set PC to 0
-
+wire hold_in = 1'b0;
+wire ready_in = 1'b1;
 
 altair machine
 (
  .clk(CLK_50M & ~on_off),
- .reset(reset_machine),
- .rx(rx),
- .tx(tx),
+ .reset(reset_machine_delayed),
+ .rx(RX),
+ .tx(TX),
  .sync(sync),
  .interrupt_ack(interrupt_ack),
  .n_memWR(n_memWR),
@@ -189,7 +197,11 @@ altair machine
  .examine_nextPB(examine_nextPB),
  .depositPB(depositPB),
  .deposit_nextPB(deposit_nextPB),
- .resetPB(resetPB)
+ .resetPB(resetPB),
+ .hold_in(hold_in),
+ .ready_in(ready_in),
+ .prg_sel(prg_sel),
+ .enable_turn_mon(enable_turn_mon)
 );
 
 ////////////////////   CLOCKS   ///////////////////
@@ -233,19 +245,37 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 wire reset = RESET | status[0] | buttons[1];
 
 wire reset_machine;
+wire reset_machine_delayed;
 
 pulse_gen reset_pulse
 (
   .clk(CLK_50M),
-  .trigger_in( reset | on_off),
+  .trigger_in( reset | on_off | prg_load),
   .pulse_out(reset_machine)
 );
 
+delay
+#(
+  .DEPTH(4),
+  .DATA_WIDTH(1)
+)  reset_machine_delay
+(
+  .clk(clk),
+  .reset(reset),
+  .data_in(reset_machine),
+  .data_out(reset_machine_delayed)
+);
 
-typedef enum {prg1='b00, prg2='b01, prg3='b10, prg4='b11} prg_type_enum;
-wire [1:0] prg_type = status[8:7];
+/////////////////  MENU  /////////////////////////
+reg [2:0] prg_sel;
+wire prg_load = status[6];
+wire enable_turn_mon = status[10];
 
-///////////////////////////////////////////////////
+always @(posedge prg_load) begin
+  prg_sel = status[9:7];
+end
+
+/////////////////  FRONT PANEL  //////////////////////////////////
 // 0 to 9 Status
 // 10 to 17 Data
 // 18 to 19 Wait HLDA
@@ -264,42 +294,43 @@ reg hold_ack_led;
 
 front_panel_mapping	front_panel_mapping	
 (
+	.reset(reset),
 	.clk(CLK_50M),
 	.leds_status(leds_status),
 	.switches_status(switches_status),
 		
-		// altair front panel LEDS from machine
-		.data(dataLEDs),
-	   .addr(addrLEDs),
-	   .INTE(inte_led),
-		.PROT(prot_led),
-		.MEMR(memRD),
-		.INP(ioRD),
-		.M1(m1),
-		.OUT(ioWR),
-		.HLTA(halt_ack),
-		.STACK(io_stack),
-		.WO(~n_memWR),
-		.INT(interrupt_ack),
-		.WAIT(wait_led),
-		.HLDA(hold_ack_led),
-		
-		// altair front panel SWITCHES to machine
-		.sense_addr(addrOrSenseIn),
-		.data_addr(dataOraddrIn),
-		.on_off(on_off),
-		.stop_run(pauseModeSW),
-		.step(stepPB),
-		.examine(examinePB),
-		.examine_next(examine_nextPB),
-		.deposit(depositPB),
-		.deposit_next(deposit_nextPB),
-		.reset(resetPB),
-		.clear(clear),
-		.protect(protect),
-		.unprotect(unprotect),
-		.aux1(aux1),
-		.aux2(aux2)
+	// map altair front panel LEDS from machine
+	.data(dataLEDs),
+	.addr(addrLEDs),
+	.INTE(inte_led),
+	.PROT(prot_led),
+	.MEMR(memRD),
+	.INP(ioRD),
+	.M1(m1),
+	.OUT(ioWR),
+	.HLTA(halt_ack),
+	.STACK(io_stack),
+	.WO(~n_memWR),
+	.INT(interrupt_ack),
+	.WAIT(wait_led),
+	.HLDA(hold_ack_led),
+	
+	// map altair front panel SWITCHES to machine
+	.sense_addr_sw(addrOrSenseIn),
+	.data_addr_sw(dataOraddrIn),
+	.on_off_sw(on_off),
+	.stop_run_sw(pauseModeSW),
+	.step_sw(stepPB),
+	.examine_sw(examinePB),
+	.examine_next_sw(examine_nextPB),
+	.deposit_sw(depositPB),
+	.deposit_next_sw(deposit_nextPB),
+	.reset_sw(resetPB),
+	.clear_sw(clear),
+	.protect_sw(protect),
+	.unprotect_sw(unprotect),
+	.aux1_sw(aux1),
+	.aux2_sw(aux2)
 );
 
 

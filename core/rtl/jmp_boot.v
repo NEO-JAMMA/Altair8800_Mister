@@ -2,6 +2,8 @@ module jmp_boot(
   input clk,
   input reset,
   input rd,
+  input [7:0] lo_addr,
+  input [7:0] hi_addr,
   output reg [7:0] data_out,
   output reg valid
 );
@@ -24,11 +26,11 @@ module jmp_boot(
 						state <= 2'b01;
 						end
 				2'b01 : begin
-						data_out <= 8'h00;
+						data_out <= lo_addr; //8'h00;
 						state <= 2'b10;
 						end
 				2'b10 : begin
-						data_out <= 8'hFD;
+						data_out <= hi_addr; //8'hFD; 
 						state <= 2'b11;
 						end
 				2'b11 : begin						

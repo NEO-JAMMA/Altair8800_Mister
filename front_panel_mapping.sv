@@ -64,6 +64,7 @@ endmodule
 
 // front_panel_mapping
 module	front_panel_mapping (
+		input reset,
 		input clk,
 		input  [1:0] switches_status[0:24],	
 		output [0:35] leds_status,
@@ -83,21 +84,21 @@ module	front_panel_mapping (
 		input WAIT,
 		input HLDA,
 		// altair front panel SWITCHES to machine
-		output [0:7] sense_addr,
-		output [0:7] data_addr,
-		output on_off,
-		output stop_run,
-		output step,
-		output examine,
-		output examine_next,
-		output deposit,
-		output deposit_next,
-		output reset,
-		output clear,
-		output protect,
-		output unprotect,
-		output aux1,
-		output aux2
+		output [0:7] sense_addr_sw,
+		output [0:7] data_addr_sw,
+		output on_off_sw,
+		output stop_run_sw,
+		output step_sw,
+		output examine_sw,
+		output examine_next_sw,
+		output deposit_sw,
+		output deposit_next_sw,
+		output reset_sw,
+		output clear_sw,
+		output protect_sw,
+		output unprotect_sw,
+		output aux1_sw,
+		output aux2_sw
 );
 
 // LEDs
@@ -109,7 +110,7 @@ module	front_panel_mapping (
 // SWITCHEs
 // 0 to 7 sense/addr
 // 8 to 15 data/addr
-// 16 to 24 control on/off, stop/run, single step, examine/ex next, deposit/dep next, rest/clear, protect/unprotect, aux, aux
+// 16 to 24 control on/off, stop/run, single step_sw, examine_sw/ex next, deposit_sw/dep next, rest/clear_sw, protect_sw/unprotect_sw, aux, aux
 
 localparam LEDS_TOTAL_NUMBER = 36;
 localparam SWITCHES_TOTAL_NUMBER = 25;
@@ -120,7 +121,7 @@ integer index_sw;
 always @(posedge clk) begin
 
   // map LEDs
-  if (on_off == 1'b1)
+  if (on_off_sw == 1'b1)
     begin
       leds_status = 1'b000000000000000000000000000000000000;
     end
@@ -141,39 +142,6 @@ always @(posedge clk) begin
       leds_status[19] = HLDA;
       leds_status[20:35] = addr;  
     end
-
-	
-//	leds_status = '{
-//	addr[0], 
-//	addr[1], 
-//	addr[2], 
-//	addr[3], 
-//	addr[4], 
-//	addr[5], 
-//	addr[6], 
-//	addr[7], 
-//	addr[8], 
-//	addr[9], 
-//	addr[10], 
-//	addr[11], 
-//	addr[12], 
-//	addr[13], 
-//	addr[14], 
-//	addr[15], 
-//	HLDA, WAIT, 
-//	data[0], 
-//	data[1], 
-//	data[2], 
-//	data[3], 
-//	data[4], 
-//	data[5], 
-//	data[6], 
-//	data[7], 
-//	INT, WO, STACK, HLTA, OUT, M1, INP, MEMR, PROT, INTE};
-
-
-
-	
 
   
 //	for (index_sw = 0; index_sw < SWITCHES_TOTAL_NUMBER; index_sw = index_sw + 1) begin
@@ -196,96 +164,55 @@ end
   // 0 - middle
   // 1 - down
   // 2 - up
-//	sense_addr = switches_status[0:7];
-	handle_two_pos_sw sense_addr_h0 ( .clk(clk), .sw_status(switches_status[0]), .o_state(sense_addr[0]));
-	handle_two_pos_sw sense_addr_h1 ( .clk(clk), .sw_status(switches_status[1]), .o_state(sense_addr[1]));
-	handle_two_pos_sw sense_addr_h2 ( .clk(clk), .sw_status(switches_status[2]), .o_state(sense_addr[2]));
-	handle_two_pos_sw sense_addr_h3 ( .clk(clk), .sw_status(switches_status[3]), .o_state(sense_addr[3]));
-	handle_two_pos_sw sense_addr_h4 ( .clk(clk), .sw_status(switches_status[4]), .o_state(sense_addr[4]));
-	handle_two_pos_sw sense_addr_h5 ( .clk(clk), .sw_status(switches_status[5]), .o_state(sense_addr[5]));
-	handle_two_pos_sw sense_addr_h6 ( .clk(clk), .sw_status(switches_status[6]), .o_state(sense_addr[6]));
-	handle_two_pos_sw sense_addr_h7 ( .clk(clk), .sw_status(switches_status[7]), .o_state(sense_addr[7]));
+//	sense_addr_sw = switches_status[0:7];
+	handle_two_pos_sw sense_addr_sw_h0 ( .clk(clk), .sw_status(switches_status[0]), .o_state(sense_addr_sw[0]));
+	handle_two_pos_sw sense_addr_sw_h1 ( .clk(clk), .sw_status(switches_status[1]), .o_state(sense_addr_sw[1]));
+	handle_two_pos_sw sense_addr_sw_h2 ( .clk(clk), .sw_status(switches_status[2]), .o_state(sense_addr_sw[2]));
+	handle_two_pos_sw sense_addr_sw_h3 ( .clk(clk), .sw_status(switches_status[3]), .o_state(sense_addr_sw[3]));
+	handle_two_pos_sw sense_addr_sw_h4 ( .clk(clk), .sw_status(switches_status[4]), .o_state(sense_addr_sw[4]));
+	handle_two_pos_sw sense_addr_sw_h5 ( .clk(clk), .sw_status(switches_status[5]), .o_state(sense_addr_sw[5]));
+	handle_two_pos_sw sense_addr_sw_h6 ( .clk(clk), .sw_status(switches_status[6]), .o_state(sense_addr_sw[6]));
+	handle_two_pos_sw sense_addr_sw_h7 ( .clk(clk), .sw_status(switches_status[7]), .o_state(sense_addr_sw[7]));
 	
-//	data_addr = switches_status[8:15];
-	handle_two_pos_sw data_addr_h0 ( .clk(clk), .sw_status(switches_status[8]),  .o_state(data_addr[0]));
-	handle_two_pos_sw data_addr_h1 ( .clk(clk), .sw_status(switches_status[9]),  .o_state(data_addr[1]));
-	handle_two_pos_sw data_addr_h2 ( .clk(clk), .sw_status(switches_status[10]), .o_state(data_addr[2]));
-	handle_two_pos_sw data_addr_h3 ( .clk(clk), .sw_status(switches_status[11]), .o_state(data_addr[3]));
-	handle_two_pos_sw data_addr_h4 ( .clk(clk), .sw_status(switches_status[12]), .o_state(data_addr[4]));
-	handle_two_pos_sw data_addr_h5 ( .clk(clk), .sw_status(switches_status[13]), .o_state(data_addr[5]));
-	handle_two_pos_sw data_addr_h6 ( .clk(clk), .sw_status(switches_status[14]), .o_state(data_addr[6]));
-	handle_two_pos_sw data_addr_h7 ( .clk(clk), .sw_status(switches_status[15]), .o_state(data_addr[7]));
+//	data_addr_sw = switches_status[8:15];
+	handle_two_pos_sw data_addr_sw_h0 ( .clk(clk), .sw_status(switches_status[8]),  .o_state(data_addr_sw[0]));
+	handle_two_pos_sw data_addr_sw_h1 ( .clk(clk), .sw_status(switches_status[9]),  .o_state(data_addr_sw[1]));
+	handle_two_pos_sw data_addr_sw_h2 ( .clk(clk), .sw_status(switches_status[10]), .o_state(data_addr_sw[2]));
+	handle_two_pos_sw data_addr_sw_h3 ( .clk(clk), .sw_status(switches_status[11]), .o_state(data_addr_sw[3]));
+	handle_two_pos_sw data_addr_sw_h4 ( .clk(clk), .sw_status(switches_status[12]), .o_state(data_addr_sw[4]));
+	handle_two_pos_sw data_addr_sw_h5 ( .clk(clk), .sw_status(switches_status[13]), .o_state(data_addr_sw[5]));
+	handle_two_pos_sw data_addr_sw_h6 ( .clk(clk), .sw_status(switches_status[14]), .o_state(data_addr_sw[6]));
+	handle_two_pos_sw data_addr_sw_h7 ( .clk(clk), .sw_status(switches_status[15]), .o_state(data_addr_sw[7]));
 
-//on_off = switches_status[16];
-	handle_two_pos_sw on_off_h
-	(
-	  .clk(clk), 
-	  .sw_status(switches_status[16]), 
-	  .o_state(on_off)
-	);
-//	stop_run = switches_status[17];
-	handle_two_pos_sw stop_run_h
-	(
-	  .clk(clk), 
-	  .sw_status(switches_status[17]), 
-	  .o_state(stop_run)
-	);
-//	step = switches_status[18];
-	handle_two_pos_sw step_h
-	(
-	  .clk(clk), 
-	  .sw_status(switches_status[18]), 
-	  .o_state(step)
-	);
-//	examine = switches_status[19];
-//	examine_next = switches_status[19];
-	handle_three_pos_sw examine_examine_next_h
-	(
-	  .clk(clk), 
-	  .sw_status(switches_status[19]), 
-	  .o_state_up(examine),
-	  .o_state_down(examine_next)
-	);
-//	deposit = switches_status[20];
-//	deposit_next = switches_status[20];
-	handle_three_pos_sw deposit_deposit_next_h
-	(
-	  .clk(clk), 
-	  .sw_status(switches_status[20]), 
-	  .o_state_up(deposit),
-	  .o_state_down(deposit_next)
-	);
+//on_off_sw = switches_status[16];
+	handle_two_pos_sw on_off_sw_h ( .clk(clk), .sw_status(switches_status[16]), .o_state(on_off_sw));
+	
+//	stop_run_sw = switches_status[17];
+	handle_two_pos_sw stop_run_sw_h ( .clk(clk), .sw_status(switches_status[17]), .o_state(stop_run_sw));
+	
+//	step_sw = switches_status[18];
+	handle_two_pos_sw step_sw_h ( .clk(clk), .sw_status(switches_status[18]), .o_state(step_sw));
+	
+//	examine_sw = switches_status[19];
+//	examine_next_sw = switches_status[19];
+	handle_three_pos_sw examine_sw_examine_next_sw_h ( .clk(clk), .sw_status(switches_status[19]), .o_state_up(examine_sw), .o_state_down(examine_next_sw));
+	
+//	deposit_sw = switches_status[20];
+//	deposit_next_sw = switches_status[20];
+	handle_three_pos_sw deposit_sw_deposit_next_sw_h ( .clk(clk), .sw_status(switches_status[20]), .o_state_up(deposit_sw), .o_state_down(deposit_next_sw));
+	
 //	reset = switches_status[21];
-//	clear = switches_status[21];
-	handle_three_pos_sw reset_clear_h
-	(
-	  .clk(clk), 
-	  .sw_status(switches_status[21]), 
-	  .o_state_up(reset),
-	  .o_state_down(clear)
-	);
-//	protect = switches_status[22];
-//	unprotect = switches_status[22];
-	handle_three_pos_sw protect_unprotect_h
-	(
-	  .clk(clk), 
-	  .sw_status(switches_status[22]), 
-	  .o_state_up(protect),
-	  .o_state_down(unprotect)
-	);
-//	aux1 = switches_status[23];
-	handle_two_pos_sw aux1_h
-	(
-	  .clk(clk), 
-	  .sw_status(switches_status[23]), 
-	  .o_state(aux1)
-	);
-//	aux2 = switches_status[24];
-	handle_two_pos_sw aux2_h
-	(
-	  .clk(clk), 
-	  .sw_status(switches_status[24]), 
-	  .o_state(aux2)
-	);
+//	clear_sw = switches_status[21];
+	handle_three_pos_sw reset_clear_sw_h ( .clk(clk), .sw_status(switches_status[21]), .o_state_up(reset_sw), .o_state_down(clear_sw));
+	
+//	protect_sw = switches_status[22];
+//	unprotect_sw = switches_status[22];
+	handle_three_pos_sw protect_sw_unprotect_sw_h ( .clk(clk), .sw_status(switches_status[22]), .o_state_up(protect_sw), .o_state_down(unprotect_sw));
+	
+//	aux1_sw = switches_status[23];
+	handle_two_pos_sw aux1_sw_h ( .clk(clk), .sw_status(switches_status[23]), .o_state(aux1_sw));
+	
+//	aux2_sw = switches_status[24];
+	handle_two_pos_sw aux2_sw_h ( .clk(clk), .sw_status(switches_status[24]), .o_state(aux2_sw));
 
 endmodule
