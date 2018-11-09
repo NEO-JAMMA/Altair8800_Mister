@@ -10,6 +10,10 @@ module mc6850(
   input rx,
   output tx
 );
+
+  parameter CLOCK = 2000000;
+  parameter BAUD  = 19200;
+  
   wire valid;
   wire tdre;
   wire [7:0] uart_out;
@@ -22,7 +26,7 @@ module mc6850(
 	.ser_tx(tx),
 	.ser_rx(rx),
 
-	.cfg_divider(2000000/19200),
+	.cfg_divider(CLOCK/BAUD),
 
 	.reg_dat_we(we && (addr==1'b1)),
 	.reg_dat_re(rd && (addr==1'b1)),

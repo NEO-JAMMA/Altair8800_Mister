@@ -1,5 +1,6 @@
 module cursor
 (
+  input  reset,
   input  clk,
   input  [10:0] ps2_key,
   output reg [4:0] cursor_index,
@@ -28,18 +29,23 @@ module cursor
 		pressed <= ps2_key[9];
 		key_toggle <= ps2_key[10];
 		old_key_toggle <= key_toggle;
-		cursor_index <= cursor_index_x + cursor_index_y;
+    cursor_index <= cursor_index_x + cursor_index_y;
 		
-		if(old_key_toggle != key_toggle && pressed) begin
+		if (reset) begin // reset switches to startup state
+      cursor_action = 0;
+      cursor_index_x = 0;
+      cursor_index_y = 0;
+		end
+		else if(old_key_toggle != key_toggle && pressed) begin
 			case(ps2_key[7:0])
 //				8'h1d : begin cursor_action = 3; cursor_index_y = 0; 						 	end	// W
 //				8'h1c : begin cursor_action = 3; cursor_index_x = cursor_index_x - 1; 	end	// A
 //				8'h1b : begin cursor_action = 3; cursor_index_y = 16; 					 	end	// S
 //				8'h23 : begin cursor_action = 3; cursor_index_x = cursor_index_x + 1; 	end	// D
-			   8'h75 : begin cursor_action = 3; cursor_index_y = 0;                    end   // Up Arrow
-			   8'h6b : begin cursor_action = 3; cursor_index_x = cursor_index_x - 1;   end   // Left Arrow
-			   8'h72 : begin cursor_action = 3; cursor_index_y = 16;                   end   // Down Arrow
-			   8'h74 : begin cursor_action = 3; cursor_index_x = cursor_index_x + 1;   end   // Right Arrow
+			  8'h75 : begin cursor_action = 3; cursor_index_y = 0;                    end   // Up Arrow
+			  8'h6b : begin cursor_action = 3; cursor_index_x = cursor_index_x - 1;   end   // Left Arrow
+			  8'h72 : begin cursor_action = 3; cursor_index_y = 16;                   end   // Down Arrow
+			  8'h74 : begin cursor_action = 3; cursor_index_x = cursor_index_x + 1;   end   // Right Arrow
 				8'h45 : begin cursor_action = 0; 													end	// 0
 				8'h16 : begin cursor_action = 1; 													end	// 1
 				8'h1e : begin cursor_action = 2; 													end	// 2

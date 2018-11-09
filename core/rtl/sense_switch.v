@@ -11,7 +11,7 @@ used to configure various I/O boards
 
 also to play killbits game
 
-use 0xFD for 4k basic
+use 0xFD 11 111 101 for 4k basic
 
 */
 
