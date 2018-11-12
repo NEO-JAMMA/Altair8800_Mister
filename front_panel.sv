@@ -20,11 +20,11 @@ module front_panel (
 	localparam BACKGROUND_HEIGHT = 500;
 	localparam BACKGROUND_IMAGE_DEPTH = BACKGROUND_WIDTH * BACKGROUND_HEIGHT; 
 	localparam BACKGROUND_IMAGE_A_WIDTH = 20;  // 2^20 > 1280 x 500
-	localparam BACKGROUND_IMAGE_D_WIDTH = 6;   // colour bits per pixel
+	localparam BACKGROUND_IMAGE_D_WIDTH = 4;   // colour bits per pixel
 	localparam BACKGROUND_IMAGE_MEMFILE ="./graphics/background.mif";
 
-	localparam BACKGROUND_PALETTE_DEPTH = 64; 
-	localparam BACKGROUND_PALETTE_A_WIDTH = 6;   // colour bits per pixel
+	localparam BACKGROUND_PALETTE_DEPTH = 16; 
+	localparam BACKGROUND_PALETTE_A_WIDTH = 4;   // colour bits per pixel
 	localparam BACKGROUND_PALETTE_D_WIDTH = 12;
 	localparam BACKGROUND_PALETTE_MEMFILE ="./graphics/background_palette.mif";
 
