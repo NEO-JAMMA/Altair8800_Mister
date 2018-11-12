@@ -54,7 +54,9 @@ module emu
 	//Video aspect ratio for HDMI. Most retro systems have ratio 4:3.
 	output  [7:0] VIDEO_ARX,
 	output  [7:0] VIDEO_ARY,
-
+	
+	output  [3:0] sconf,
+	
 	output  [7:0] VGA_R,
 	output  [7:0] VGA_G,
 	output  [7:0] VGA_B,
@@ -62,7 +64,8 @@ module emu
 	output        VGA_VS,
 	output        VGA_DE,    // = ~(VBlank | HBlank)
 	output        VGA_F1,
-
+	output [1:0]  VGA_SL,
+	
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
 	// b[1]: 0 - LED status is system status OR'd with b[0]
@@ -109,8 +112,8 @@ module emu
 	output        SDRAM_nCAS,
 	output        SDRAM_nRAS,
 	output        SDRAM_nWE,
-  input         RX,
-  output        TX
+	input         RX,
+	output        TX
 );
 
 `include "common.sv"
@@ -126,6 +129,7 @@ assign LED_POWER = 0;
 assign VIDEO_ARX = 16;
 assign VIDEO_ARY = 9;
 
+assign sconf = status[13:10];
 
 `include "build_id.v"
 localparam CONF_STR = {
