@@ -1,14 +1,8 @@
 //============================================================================
-//  Grant’s multi computer
+//  Altair 8800
 // 
-//  Port to MiSTer.
-//
-//  Based on Grant’s multi computer
-//  http://searle.hostei.com/grant/
-//  http://searle.hostei.com/grant/Multicomp/index.html
-//	 and WiSo's collector blog (MiST port)
-//	 https://ws0.org/building-your-own-custom-computer-with-the-mist-fpga-board-part-1/
-//	 https://ws0.org/building-your-own-custom-computer-with-the-mist-fpga-board-part-2/
+//	 By Fred VanEijk and Cyril Venditti
+//  Created on 11/12/2018
 //
 //  This program is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU General Public License as published by the Free
@@ -24,12 +18,6 @@
 //  with this program; if not, write to the Free Software Foundation, Inc.,
 //  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //============================================================================
-
-//TO DO
-// fix edge background right / Pixel left
-// Use Param for LEDS_TOTAL_NUMBER and SWITCHES_TOTAL_NUMBER
-// Move background code to front_panel.sv
-
 
 
 module emu

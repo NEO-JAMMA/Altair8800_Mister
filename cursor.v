@@ -29,7 +29,7 @@ module cursor
 		pressed <= ps2_key[9];
 		key_toggle <= ps2_key[10];
 		old_key_toggle <= key_toggle;
-    cursor_index <= cursor_index_x + cursor_index_y;
+		cursor_index <= cursor_index_x + cursor_index_y;
 		
 		if (reset) begin // reset switches to startup state
       cursor_action = 0;
@@ -38,24 +38,47 @@ module cursor
 		end
 		else if(old_key_toggle != key_toggle && pressed) begin
 			case(ps2_key[7:0])
-//				8'h1d : begin cursor_action = 3; cursor_index_y = 0; 						 	end	// W
-//				8'h1c : begin cursor_action = 3; cursor_index_x = cursor_index_x - 1; 	end	// A
-//				8'h1b : begin cursor_action = 3; cursor_index_y = 16; 					 	end	// S
-//				8'h23 : begin cursor_action = 3; cursor_index_x = cursor_index_x + 1; 	end	// D
-			  8'h75 : begin cursor_action = 3; cursor_index_y = 0;                    end   // Up Arrow
-			  8'h6b : begin cursor_action = 3; cursor_index_x = cursor_index_x - 1;   end   // Left Arrow
-			  8'h72 : begin cursor_action = 3; cursor_index_y = 16;                   end   // Down Arrow
-			  8'h74 : begin cursor_action = 3; cursor_index_x = cursor_index_x + 1;   end   // Right Arrow
-				8'h45 : begin cursor_action = 0; 													end	// 0
-				8'h16 : begin cursor_action = 1; 													end	// 1
-				8'h1e : begin cursor_action = 2; 													end	// 2
+				8'h75 :	// Up Arrow
+				begin 
+					cursor_action = 3; cursor_index_y = 0;
+				end
+				8'h6b :	// Left Arrow
+				begin 
+					cursor_action = 3;
+					cursor_index_x = cursor_index_x - 1;
+					if	(cursor_index_y == 16 && cursor_index_x == 15)
+						cursor_index_x = 8;
+				end
+				8'h72 :  // Down Arrow
+				begin 
+					cursor_action = 3; 
+					cursor_index_y = 16;
+					if (cursor_index_x > 8)
+						cursor_index_x = 8;
+				end
+				8'h74 :	// Right Arrow
+					begin cursor_action = 3;
+					cursor_index_x = cursor_index_x + 1;
+					if	(cursor_index_y == 16 && cursor_index_x > 8)
+						cursor_index_x = 0;
+				end
+				8'h45 :	// 0
+				begin 
+					cursor_action = 0;
+				end
+				8'h16 :	// 1
+					begin cursor_action = 1;
+				end
+				8'h1e :	// 2
+					begin cursor_action = 2;
+				end
 			endcase
 		end
 		else if(old_key_toggle != key_toggle && ~pressed) begin
 		  if (cursor_index >= SWITCHES_ST_COUNT && cursor_index != SWITCHES_ST_AUX1_INDEX && cursor_index != SWITCHES_ST_AUX2_INDEX) begin
 			case(ps2_key[7:0])
-				8'h16 : cursor_action = 0; 																	// 1
-				8'h1e : cursor_action = 0; 																	// 2
+				8'h16 : cursor_action = 0; 	// 1
+				8'h1e : cursor_action = 0; 	// 2
 			endcase
 		  end	
 		end
