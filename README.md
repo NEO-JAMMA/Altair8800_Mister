@@ -29,7 +29,7 @@ https://en.wikipedia.org/wiki/Altair_8800
   - AUX
 
 ## Available samples 
-These samples are accessible through the MiSTer Core OSD (F12) in the Select Program section. 
+These samples are accessible through the MiSTer Core OSD (F12) in the "Select Program" section. 
 
 - Empty
 
@@ -92,7 +92,7 @@ MiSTer Core OSD (F12) :
   - Core - Todo
 
 ## Not implemented
-the following switches are not implemented:
+The following switches are not implemented:
    - CLR
    - PROTECT
    - AUX
