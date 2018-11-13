@@ -79,21 +79,21 @@ MiSTer Core OSD (F12) :
 
 - “Enable TurnMon” 
 
-      Makes available the turn key monitor at address 0xFD00
-      See file "Altair8800_Mister/core/roms/altair/turnmon.txt"
+      Makes available the turn key monitor at address 0xFD00.
+      See file "Altair8800_Mister/core/roms/altair/turnmon.txt".
   
 ## Serial port - Todo
 - Altair8800 Switch settings
 - Hardware Wiring or I/O Board v5.5
-	You can use any USB to 3.3V TTL Serial Cable Adapter should work.
-	TX  SDA Arduino_IO14
-	RX SCL Arduino_IO15
-	Wire ground
-- Use Putty or TeraTerm for client use 19200 baud
+  - You can use any USB to 3.3V TTL Serial Cable Adapter should work.
+  - RX SCL Arduino_IO15.
+  - RX SDA Arduino_IO14.
+  - Don't forget to wire the Ground.
+- Use Putty or TeraTerm for client use 19200 baud.
 
 ## Credits
-  - We took some inspirationf or the graphical part from https://timetoexplore.net/blog/arty-fpga-vga-verilog-01
-  - Altair8800 Front panel image from http://www.vintage-computer.com/altair8800.shtml
+  - We took some inspiration for displaying the Altair8800 front panel from https://timetoexplore.net/blog/arty-fpga-vga-verilog-01
+  - Altair8800 front panel image from http://www.vintage-computer.com/altair8800.shtml
   - Core - Todo
 
 ## Not implemented
