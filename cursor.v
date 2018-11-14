@@ -67,10 +67,15 @@ module cursor
 					cursor_action = 0;
 				end
 				8'h16 :	// 1
-					begin cursor_action = 1;
+				begin 
+					cursor_action = 1;
 				end
 				8'h1e :	// 2
-					begin cursor_action = 2;
+				begin 
+					if (cursor_index >= SWITCHES_ST_COUNT)
+						cursor_action = 2;
+					else
+						cursor_action = 0;
 				end
 			endcase
 		end
