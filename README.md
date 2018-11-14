@@ -91,6 +91,8 @@ MiSTer Core OSD (F12) :
   - Don't forget to wire the Ground.
 - Use Putty or TeraTerm for client use 19200 baud.
 
+![alt text](./images/DE-10_Serial.png)
+  
 ## Credits
   - We took some inspiration for displaying the Altair8800 front panel from https://timetoexplore.net/blog/arty-fpga-vga-verilog-01
   - Altair8800 front panel image from http://www.vintage-computer.com/altair8800.shtml
