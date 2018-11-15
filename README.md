@@ -1,5 +1,6 @@
 Altair8800_Mister
 =================
+![alt text](./images/Altair8800_MiSTer.png)
 By Fred VanEijk and Cyril Venditti.
 
 ## What is an Altair 8800
@@ -12,18 +13,19 @@ https://en.wikipedia.org/wiki/Altair_8800
   - SENSE/DATA/ADDRESS
   - OFF/ON
   - STOP/RUN
-    - 0 keys - Off - down
-    - 1 keys - On - up
+    - 1 key - On - up
+    - 2 or 0 key - Off - down
+    
 
 - Momentary switches
   - SINGLE STEP
   - EXAMINE
   - DEPOSIT
   - RESET
-    - 1 keys - Up
-    - 2 keys - Down
+    - 1 key - Up
+    - 2 key - Down
 
-- Non implemented switches
+- Not implemented switches
   - CLR
   - PROTECT
   - AUX
@@ -61,8 +63,13 @@ These samples are accessible through the MiSTer Core OSD (F12) in the "Select Pr
       Basic interpreter in 4k ram at 0x0000 with a total of 8k of memory including the interpreter.
       Comumicates with serial port requires SENSE swithes to be set to 0xFD.
       this is the basic interpreter originally created by Bill Gates and Paul Allen.
-
-## Basic Altair operation
+      
+  The Basic4k32 require the serial port to be setup and the sense switches to be set this way:
+    - 15 to 10 ON
+    - 9 OFF
+    - 8 ON
+    
+## Altair operation
 http://altairclone.com/altair_experience.htm
 
 ## OSD explanation
@@ -73,33 +80,61 @@ MiSTer Core OSD (F12) :
       See Available samples section.
 
 - “Load Program”
-
-      To Load a program first select a program using the select program option then press “Load Program”. 
-      Once you press ”Load Program” the Core will place that program in memory.
-
+  - Do this switch sequence:
+    - Turn the ON/OFF switch to ON
+    - Insure that the STOP/RUN switch is STOP
+    - Load a program by using the "Select Program" option then press "Load Program". 
+      Once you press "Load Program" the Core will place that program in memory.
+  - Finally do:
+    - RESET with the RESET/CLR switch
+    - Turn the STOP/RUN switch to RUN
+       
 - “Enable TurnMon” 
 
       Makes available the turn key monitor at address 0xFD00.
       See file "Altair8800_Mister/core/roms/altair/turnmon.txt".
+      
+- “Reset” 
+
+      This will reset the core.
+      
   
-## Serial port - Todo
-- Altair8800 Switch settings
-- Hardware Wiring or I/O Board v5.5
-  - You can use any USB to 3.3V TTL Serial Cable Adapter should work.
+## Serial port
+- To use the serial port you need to have an I/O Board v5.5 or do a hardware Wiring:
+  - Any USB to 3.3V (NOT 5.5V) TTL Serial Cable Adapter should work.
+  - TX SDA Arduino_IO14.
   - RX SCL Arduino_IO15.
-  - RX SDA Arduino_IO14.
   - Don't forget to wire the Ground.
-- Use Putty or TeraTerm for client use 19200 baud.
+- Use Putty or TeraTerm for client and use the 19200 baud setting.
 
 ![alt text](./images/DE-10_Serial.png)
   
 ## Credits
-  - We took some inspiration for displaying the Altair8800 front panel from https://timetoexplore.net/blog/arty-fpga-vga-verilog-01
-  - Altair8800 front panel image from http://www.vintage-computer.com/altair8800.shtml
-  - Core - Todo
+  - Inspiration for displaying the Altair8800 front panel:
+  
+        https://timetoexplore.net/blog/arty-fpga-vga-verilog-01
+                  
+  - Altair8800 front panel image: 
+  
+        http://www.vintage-computer.com/altair8800.shtml
+        
+  - Core:
+  
+        https://github.com/1801BM1/vm80a
+
+        https://zeptobars.com/en/read/KR580VM80A-intel-i8080-verilog-reverse-engineering
+
+        https://hackaday.com/2015/03/07/looking-inside-the-kr580vm80a-soviet-i8080-clone/
+
+        https://jeelabs.org/2016/09/i-never-had-an-intel-8080/
+
+        https://github.com/mmicko/s100fpga
+
+## Known issues
+Depending on your monitor resolution the Altair8800 front panel might not be complete or centered.
 
 ## Not implemented
-The following switches are not implemented:
+The following switches/functions are not implemented:
    - CLR
    - PROTECT
    - AUX
