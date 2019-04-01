@@ -102,8 +102,8 @@ MiSTer Core OSD (F12) :
 ## Serial port
 - To use the serial port you need to have an I/O Board v5.5 or do a hardware Wiring:
   - Any USB to 3.3V (NOT 5.5V) TTL Serial Cable Adapter should work.
-  - TX of the TTL Serial Cable Adapter -> SDA Arduino_IO14 pin of the DE-10.
-  - RX of the TTL Serial Cable Adapter -> the SCL Arduino_IO15 pin of the DE-10.
+  - TX of the TTL Serial Cable Adapter -> SCL Arduino_IO15 pin of the DE-10.
+  - RX of the TTL Serial Cable Adapter -> SDA Arduino_IO14 pin of the DE-10.
   - Don't forget to wire the Ground.
 - Use Putty or TeraTerm for client and use the 19200 baud setting.
 
